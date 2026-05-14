@@ -6,9 +6,9 @@ is unreliable on the free tier (during busy hours it consolidates 2-min
 schedules into bursts that fire roughly once an hour). Cloudflare's cron
 is much more reliable, so we let it pull the trigger.
 
-After the PGA Championship 2026 final round (`2026-05-18 13:00 UTC`) the
-worker stops dispatching automatically — GitHub's 5-minute baseline cron
-is plenty after that.
+After end-of-day Tuesday 19 May UTC (`2026-05-20 00:00 UTC`) the worker
+stops dispatching automatically — GitHub's 5-minute baseline cron is
+plenty for any post-tournament wind-down.
 
 ---
 

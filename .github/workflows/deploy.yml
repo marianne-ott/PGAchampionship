@@ -16,9 +16,10 @@ on:
     # when it got busy — two crons is the sweet spot between cadence
     # and reliability, and also stays well under GitHub Pages' build
     # rate limit (~10 builds/hour per repo). The "Cron gate" step below
-    # short-circuits this extra cron after the cutoff (Monday 18 May
-    # 2026 at 09:00 ET = 13:00 UTC) so we automatically drop back to
-    # the 5-minute baseline once the final round is over.
+    # short-circuits this extra cron after the cutoff (end of Tuesday
+    # 19 May 2026 UTC = 2026-05-20 00:00 UTC) so we automatically drop
+    # back to the 5-minute baseline once the post-tournament window
+    # closes.
     - cron: "2-59/5 * * * *"
   workflow_dispatch:
   push:
@@ -51,9 +52,11 @@ jobs:
         run: |
           set -euo pipefail
           BASE_CRON='0-59/5 * * * *'
-          # PGA Championship 2026 ends Sunday 17 May. Drop back to 5-min
-          # cadence Monday 18 May at 09:00 ET (= 13:00 UTC, EDT in May).
-          CUTOFF_EPOCH=$(date -u -d '2026-05-18 13:00:00 UTC' +%s)
+          # PGA Championship 2026 ends Sunday 17 May. Keep the 2-min
+          # cadence going through Monday + Tuesday for post-tournament
+          # chatter, then drop back to the 5-min baseline at midnight
+          # UTC at the end of Tuesday 19 May.
+          CUTOFF_EPOCH=$(date -u -d '2026-05-20 00:00:00 UTC' +%s)
           NOW_EPOCH=$(date -u +%s)
           EVT='${{ github.event_name }}'
           SCHED='${{ github.event.schedule }}'
