@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nb">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -90,6 +90,47 @@
     .reload-countdown em { font-style: italic; color: rgba(255, 255, 255, 0.92); }
     @media (max-width: 600px) {
       .reload-countdown { font-size: 0.78rem; }
+    }
+    .lang-toggle {
+      display: inline-flex;
+      gap: 0.18rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 4px;
+      padding: 0.18rem;
+    }
+    .lang-btn {
+      padding: 0.28rem 0.55rem;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.78);
+      font-family: var(--display-font);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.32rem;
+      box-shadow: none;
+      line-height: 1;
+    }
+    .lang-btn[aria-pressed="true"] {
+      background: var(--pga-gold);
+      border-color: var(--pga-gold-dark);
+      color: var(--masters-dark);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    }
+    .lang-btn:hover:not([aria-pressed="true"]) {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+    .lang-btn .lang-flag {
+      font-size: 1rem;
+      line-height: 1;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
     }
     label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
     button {
@@ -544,9 +585,19 @@
     .pick-chip.drop { text-decoration: line-through; opacity: 0.62; color: var(--muted); font-weight: 400; }
     /* Show full name on wide screens, just the last name on narrow / mobile landscape so chips stay readable */
     .pick-chip .chip-name-last { display: none; }
+    .pick-chip .chip-pts { font-weight: inherit; }
     @media (max-width: 900px) {
       .pick-chip .chip-name-full { display: none; }
       .pick-chip .chip-name-last { display: inline; }
+    }
+    @media (max-width: 900px) and (orientation: landscape) {
+      /* In phone-landscape the chips are tight — hide the position number
+         and use the freed space to fit the full last name. The number is
+         still visible on the leaderboard tab, in the bettor modal, and as
+         a long-press tooltip on the chip itself (title attribute). */
+      .pick-chip .chip-pts,
+      .pick-chip .chip-pts-sep { display: none; }
+      .pick-chip { font-size: 0.7rem; }
     }
     .pool .sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; }
     .pool-top-row {
@@ -828,15 +879,19 @@
     <h1><span class="h1-accent">PGA</span> Championship 2026</h1>
     <div class="toolbar">
       <p id="reloadCountdown" class="reload-countdown" aria-live="polite"></p>
-      <button type="button" id="go">Update</button>
+      <div class="lang-toggle" role="group" data-i18n-aria="languageGroup" aria-label="Language">
+        <button type="button" class="lang-btn" data-lang="no" aria-pressed="true" data-i18n-title="switchToNorwegian" title="Bytt til norsk"><span class="lang-flag" aria-hidden="true">🇳🇴</span> NO</button>
+        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" data-i18n-title="switchToEnglish" title="Switch to English"><span class="lang-flag" aria-hidden="true">🇬🇧</span> EN</button>
+      </div>
+      <button type="button" id="go" data-i18n="btnUpdate">Update</button>
     </div>
   </header>
   <main class="page-main">
   <div id="err" class="error" hidden></div>
   <div class="tabs-wrap">
     <nav class="tabs" role="tablist" aria-label="Main views">
-      <button type="button" class="tab-btn active" role="tab" id="tabPool" aria-selected="true" aria-controls="panelPool">Chosen 7</button>
-      <button type="button" class="tab-btn" role="tab" id="tabPga" aria-selected="false" aria-controls="panelPga">PGA leaderboard</button>
+      <button type="button" class="tab-btn active" role="tab" id="tabPool" aria-selected="true" aria-controls="panelPool" data-i18n="tabPool">Chosen 7</button>
+      <button type="button" class="tab-btn" role="tab" id="tabPga" aria-selected="false" aria-controls="panelPga" data-i18n="tabPga">PGA leaderboard</button>
     </nav>
     <div class="tab-panel" id="panelPool" role="tabpanel" aria-labelledby="tabPool">
       <section id="poolSection" class="pool">
@@ -844,26 +899,26 @@
           <div id="poolToolbarSlot" class="pool-top-row__search"></div>
           <div class="pool-top-row__rules">
             <div class="our-head" role="group" aria-labelledby="poolRulesHeading">
-              <span id="poolRulesHeading" class="our-head-title">Competition Rules</span>
+              <span id="poolRulesHeading" class="our-head-title" data-i18n="competitionRules">Competition Rules</span>
               <details class="pool-rules-details">
-                <summary class="pool-rules-trigger" title="Full competition rules" aria-label="Full competition rules">i</summary>
+                <summary class="pool-rules-trigger" data-i18n-title="fullRulesTitle" data-i18n-aria="fullRulesAria" title="Full competition rules" aria-label="Full competition rules">i</summary>
                 <div id="poolRulesPanel" class="pool-rules-panel"></div>
               </details>
             </div>
           </div>
         </div>
-        <div id="poolRotateHint" class="pool-rotate-hint" role="note" aria-label="Rotate your phone to see each player's picks">
+        <div id="poolRotateHint" class="pool-rotate-hint" role="note" data-i18n-aria="rotateHintLabel" aria-label="Rotate your phone to see each player's picks">
           <svg class="pool-rotate-hint__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path fill="currentColor" d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36zm-7.31.29C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32z"/>
           </svg>
-          <span class="pool-rotate-hint__text"><strong>Rotate your phone</strong> to see each player&rsquo;s picks &mdash; or just tap a name.</span>
+          <span class="pool-rotate-hint__text" data-i18n-html="rotateHintHtml"><strong>Rotate your phone</strong> to see each player&rsquo;s picks &mdash; or just tap a name.</span>
         </div>
-        <div id="poolBody"><p class="sub" style="margin-top:0">Loading…</p></div>
+        <div id="poolBody"><p class="sub" style="margin-top:0" data-i18n="loading">Loading…</p></div>
       </section>
       <div id="poolhint" class="poolhint" hidden></div>
     </div>
     <div class="tab-panel" id="panelPga" role="tabpanel" aria-labelledby="tabPga" hidden>
-      <p class="meta" id="meta">Not loaded yet.</p>
+      <p class="meta" id="meta" data-i18n="notLoadedYet">Not loaded yet.</p>
       <div class="wrap">
         <table id="grid" aria-label="PGA tournament leaderboard">
           <thead><tr id="head"></tr></thead>
@@ -876,17 +931,220 @@
   <dialog id="bettorDialog" class="bettor-dialog" aria-labelledby="bettorDialogName">
     <div class="bettor-dialog__head">
       <h3 id="bettorDialogName"></h3>
-      <button type="button" class="bettor-dialog__close" id="bettorDialogClose" aria-label="Close">&times;</button>
+      <button type="button" class="bettor-dialog__close" id="bettorDialogClose" data-i18n-aria="close" aria-label="Close">&times;</button>
     </div>
     <div class="bettor-dialog__stats" id="bettorDialogStats"></div>
     <div class="bettor-dialog__picks" id="bettorDialogPicks"></div>
-    <p class="bettor-dialog__legend">Greyed-out picks are dropped from the total (only the best <span data-counting>5</span> of <span data-pickspf>7</span> count). Lower total = better.</p>
+    <p class="bettor-dialog__legend" id="bettorDialogLegend"></p>
   </dialog>
   <script>
     const $ = (id) => document.getElementById(id);
     const LS_BETTOR = "mastersPoolMyBettor";
+    const LS_LANG = "pgaLang";
     let lastPoolStandings = null;
+    let lastBundle = null;
     let loadSeq = 0;
+
+    /* ----- i18n -------------------------------------------------------- */
+    const STRINGS = {
+      no: {
+        btnUpdate: "Oppdater",
+        btnClear: "Tøm",
+        tabPool: "Mine 7",
+        tabPga: "PGA-tabell",
+        loading: "Laster…",
+        fetching: "Henter…",
+        updating: "Oppdaterer…",
+        notLoadedYet: "Ikke lastet enda.",
+        requestFailed: "Forespørselen feilet.",
+        couldNotLoad: "Kunne ikke laste data.json. Prøv igjen om litt.",
+        noPoolData: "Ingen pool-data.",
+        noPoolFile: "Ingen pool-fil.",
+        poolNeedsPga: "Pool krever standard PGA-leaderboard-URL (pgatour.com).",
+        poolError: "Pool-feil",
+        lookUpNamePlaceholder: "søk etter navn",
+        lookUpNameLabel: "Søk etter navn",
+        competitionRules: "Konkurranseregler",
+        fullRulesAria: "Alle konkurranseregler",
+        fullRulesTitle: "Alle konkurranseregler",
+        rotateHintLabel: "Snu telefonen for å se valgene til hver spiller",
+        rotateHintHtml: "<strong>Snu telefonen</strong> for å se valgene til hver spiller &mdash; eller trykk på et navn.",
+        colName: "Navn",
+        colRank: "Plass",
+        colTotal: "Totalt",
+        colPicks: "Valg",
+        rank: "Plass",
+        total: "Totalt",
+        bestXofY: (x, y) => "Beste " + x + " av " + y,
+        potN: (n) => "Pott " + n,
+        noMatch: "(ingen treff)",
+        legendText: (cp, pp) => "Grålagte valg trekkes fra totalen (kun de " + cp + " beste av " + pp + " teller). Lavere total = bedre.",
+        tapForPicks: (name) => name + " — trykk for å se alle valg",
+        totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
+        lastUpdated: "Sist oppdatert",
+        nextRefreshHtml: (s) => "Neste auto-oppdatering om <strong>" + s + "</strong> s",
+        source: "Kilde",
+        rows: "rader",
+        trophyGoldTitle: "1. plass — toppgevinst",
+        trophyGoldAria: "1. plass, toppgevinst",
+        trophySilverTitle: "2. plass — andreplass",
+        trophySilverAria: "2. plass, andreplass",
+        finishedFinalRoundLabel: "Ferdig med siste runde",
+        finishedFinalRoundTitle: "Ferdig med siste runde",
+        close: "Lukk",
+        languageGroup: "Språk",
+        switchToNorwegian: "Bytt til norsk",
+        switchToEnglish: "Bytt til engelsk",
+        rulesPanel: (st) => {
+          const nDrop = st.picks_per_friend - st.counting_picks;
+          return (
+            '<div class="pool-rules-sub">Poenggivning</div>' +
+            '<p>Du har <strong>' + st.picks_per_friend + '</strong> valg per spiller. Din <strong>total</strong> er summen av poengene fra de <strong>' + st.counting_picks + '</strong> valgene som teller. <strong>Lavest total vinner.</strong></p>' +
+            '<p>Hvert valg gir poeng tilsvarende golferens <strong>plassering på leaderboardet</strong> (dårligere plassering = høyere tall). Leaderboardet beholder siste plassering mellom rundene, så et valg viser bare hvor spilleren ligger akkurat nå.</p>' +
+            '<p>To tilfeller gir maks <strong>' + st.cut_points + '</strong> poeng:</p>' +
+            '<ul class="pool-rules-list">' +
+            '<li><strong>Missed cut</strong> &mdash; endelig for resten av turneringen.</li>' +
+            '<li><strong>Har ikke teet av enda</strong> &mdash; skjer kun før Runde 1, mens leaderboardet ikke har registrert noen plassering. Så snart spilleren slår sitt første slag dukker en reell plassering opp og erstatter denne plassholderen ved neste oppdatering.</li>' +
+            '</ul>' +
+            '<div class="pool-rules-sub">Hvilke valg teller?</div>' +
+            '<p>Vi forkaster dine <strong>' + nDrop + '</strong> valg med <strong>høyest</strong> totalpoeng (dine dårligste resultater). Når flere valg har samme poeng, forkaster vi de høyeste pott-numrene først &mdash; så toppvalgene dine forblir intakte. Forkastede valg er <strong>overstrøket</strong> og legges ikke til totalen.</p>'
+          );
+        },
+      },
+      en: {
+        btnUpdate: "Update",
+        btnClear: "Clear",
+        tabPool: "Chosen 7",
+        tabPga: "PGA leaderboard",
+        loading: "Loading…",
+        fetching: "Fetching…",
+        updating: "Updating…",
+        notLoadedYet: "Not loaded yet.",
+        requestFailed: "Request failed.",
+        couldNotLoad: "Could not load data.json. Try again in a moment.",
+        noPoolData: "No pool data.",
+        noPoolFile: "No pool file.",
+        poolNeedsPga: "Pool needs the default PGA leaderboard URL (pgatour.com).",
+        poolError: "Pool error",
+        lookUpNamePlaceholder: "look up name",
+        lookUpNameLabel: "Look up name",
+        competitionRules: "Competition Rules",
+        fullRulesAria: "Full competition rules",
+        fullRulesTitle: "Full competition rules",
+        rotateHintLabel: "Rotate your phone to see each player's picks",
+        rotateHintHtml: "<strong>Rotate your phone</strong> to see each player&rsquo;s picks &mdash; or just tap a name.",
+        colName: "Name",
+        colRank: "Rank",
+        colTotal: "Total",
+        colPicks: "Picks",
+        rank: "Rank",
+        total: "Total",
+        bestXofY: (x, y) => "Best " + x + " of " + y,
+        potN: (n) => "Pot " + n,
+        noMatch: "(no match)",
+        legendText: (cp, pp) => "Greyed-out picks are dropped from the total (only the best " + cp + " of " + pp + " count). Lower total = better.",
+        tapForPicks: (name) => name + " — tap for full pick list",
+        totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
+        lastUpdated: "Last updated",
+        nextRefreshHtml: (s) => "Next auto-refresh in <strong>" + s + "</strong> s",
+        source: "Source",
+        rows: "rows",
+        trophyGoldTitle: "1st place — top prize",
+        trophyGoldAria: "1st place, top prize",
+        trophySilverTitle: "2nd place — runner-up prize",
+        trophySilverAria: "2nd place, runner-up prize",
+        finishedFinalRoundLabel: "Finished final round",
+        finishedFinalRoundTitle: "Finished final round",
+        close: "Close",
+        languageGroup: "Language",
+        switchToNorwegian: "Bytt til norsk",
+        switchToEnglish: "Switch to English",
+        rulesPanel: (st) => {
+          const nDrop = st.picks_per_friend - st.counting_picks;
+          return (
+            '<div class="pool-rules-sub">Scoring</div>' +
+            '<p>You have <strong>' + st.picks_per_friend + '</strong> picks per player. Your <strong>total</strong> is the sum of points from the <strong>' + st.counting_picks + '</strong> picks that count. <strong>Lowest total wins.</strong></p>' +
+            '<p>Each pick earns points equal to that golfer&rsquo;s <strong>listed leaderboard position</strong> (a worse finish means a higher number). The leaderboard carries the latest standings between rounds, so a pick simply shows wherever the player currently sits.</p>' +
+            '<p>Two cases score the maximum <strong>' + st.cut_points + '</strong> points:</p>' +
+            '<ul class="pool-rules-list">' +
+            '<li><strong>Missed the cut</strong> &mdash; final for the rest of the tournament.</li>' +
+            '<li><strong>Hasn&rsquo;t teed off yet</strong> &mdash; only happens before Round 1, while the leaderboard hasn&rsquo;t recorded a position. As soon as the player hits a shot, a real position appears and replaces this placeholder on the next refresh.</li>' +
+            '</ul>' +
+            '<div class="pool-rules-sub">Which picks count?</div>' +
+            '<p>We drop your <strong>' + nDrop + '</strong> picks with the <strong>highest</strong> point totals (your worst results). When several picks tie on points, we drop the higher-numbered pots first &mdash; so your marquee early-tier picks stay protected. Dropped chips are <strong>struck through</strong> and are not added to your total.</p>'
+          );
+        },
+      },
+    };
+
+    let currentLang = (function () {
+      try {
+        const saved = localStorage.getItem(LS_LANG);
+        if (saved === "no" || saved === "en") return saved;
+      } catch (e) { /* ignore */ }
+      return "no"; /* default: Norwegian */
+    })();
+
+    function t(key, ...args) {
+      const dict = STRINGS[currentLang] || STRINGS.no;
+      const v = dict[key];
+      if (typeof v === "function") return v(...args);
+      return v != null ? v : key;
+    }
+
+    function localeTag() {
+      return currentLang === "no" ? "nb-NO" : "en-GB";
+    }
+
+    function applyStaticI18n() {
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.getAttribute("data-i18n"));
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+        el.innerHTML = t(el.getAttribute("data-i18n-html"));
+      });
+      document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+        el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria")));
+      });
+      document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+        el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
+      });
+    }
+
+    function applyLangButtons() {
+      document.querySelectorAll(".lang-btn").forEach((b) => {
+        const isActive = b.getAttribute("data-lang") === currentLang;
+        b.setAttribute("aria-pressed", String(isActive));
+      });
+    }
+
+    function setLang(lang) {
+      if (lang !== "no" && lang !== "en") return;
+      currentLang = lang;
+      try { localStorage.setItem(LS_LANG, lang); } catch (e) { /* ignore */ }
+      document.documentElement.lang = lang === "no" ? "nb" : "en";
+      applyStaticI18n();
+      applyLangButtons();
+      if ($("go") && !$("go").disabled) $("go").textContent = t("btnUpdate");
+      if (lastBundle) {
+        renderLeaderboard(lastBundle.leaderboard);
+        renderPool(lastBundle.pool, lastBundle.leaderboard);
+      }
+      updateReloadCountdownDisplay();
+    }
+
+    function initLangToggle() {
+      document.querySelectorAll(".lang-btn").forEach((b) => {
+        b.addEventListener("click", () => {
+          const target = b.getAttribute("data-lang");
+          if (target && target !== currentLang) setLang(target);
+        });
+      });
+    }
+    /* ------------------------------------------------------------------ */
 
     function lastWordOf(name) {
       const parts = String(name || "").trim().split(/\s+/);
@@ -927,7 +1185,7 @@
       if (!d) return s || "—";
       const tz = getDisplayTimeZone();
       try {
-        return new Intl.DateTimeFormat([], {
+        return new Intl.DateTimeFormat(localeTag(), {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
@@ -945,7 +1203,7 @@
       if (!d) return s || "";
       const tz = getDisplayTimeZone();
       try {
-        return new Intl.DateTimeFormat([], {
+        return new Intl.DateTimeFormat(localeTag(), {
           weekday: "short",
           year: "numeric",
           month: "short",
@@ -974,9 +1232,9 @@
       stats.innerHTML = "";
       if (friend.ok && friend.rank != null) {
         stats.innerHTML =
-          "<span>Rank<strong>" + String(friend.rank) + "</strong></span>" +
-          "<span>Total<strong>" + String(friend.total) + "</strong></span>" +
-          (cp && pp ? "<span>Best<strong>" + String(cp) + " of " + String(pp) + "</strong></span>" : "");
+          "<span>" + escapeHtml(t("rank")) + "<strong>" + String(friend.rank) + "</strong></span>" +
+          "<span>" + escapeHtml(t("total")) + "<strong>" + String(friend.total) + "</strong></span>" +
+          (cp && pp ? "<span>" + escapeHtml(t("bestXofY", cp, pp)) + "</span>" : "");
       } else if (friend.error) {
         stats.innerHTML = "<span style='color:var(--danger);text-transform:none;letter-spacing:0'>" + escapeHtml(friend.error) + "</span>";
       }
@@ -989,10 +1247,10 @@
         if (p.missing) cls.push("miss");
         else if (p.counts === false) cls.push("drop");
         row.className = cls.join(" ");
-        const tier = "Pot " + String(i + 1);
+        const tier = t("potN", i + 1);
         let nameTxt, posTxt, ptsTxt;
         if (p.missing) {
-          nameTxt = (p.pick || "") + " (no match)";
+          nameTxt = (p.pick || "") + " " + t("noMatch");
           posTxt = "—";
           ptsTxt = "—";
         } else {
@@ -1007,12 +1265,11 @@
           "<span class='bettor-dialog__pick-pts'>" + escapeHtml(ptsTxt) + "</span>";
         picksWrap.appendChild(row);
       });
-      const legend = dlg.querySelector(".bettor-dialog__legend");
+      const legend = $("bettorDialogLegend");
       if (legend) {
-        const ce = legend.querySelector("[data-counting]");
-        const pe = legend.querySelector("[data-pickspf]");
-        if (ce && cp) ce.textContent = String(cp);
-        if (pe && pp) pe.textContent = String(pp);
+        const cpL = cp || (standings && standings.counting_picks) || 5;
+        const ppL = pp || (standings && standings.picks_per_friend) || 7;
+        legend.textContent = t("legendText", cpL, ppL);
       }
       if (typeof dlg.showModal === "function") dlg.showModal();
       else dlg.setAttribute("open", "");
@@ -1067,13 +1324,13 @@
         const shortTime = formatFetchedAtShort(lastFetchedAtRaw);
         const fullTime = formatFetchedAtFull(lastFetchedAtRaw);
         lastBit =
-          "Last updated <strong title=\"" + escapeHtml(fullTime) + "\">" +
+          escapeHtml(t("lastUpdated")) + " <strong title=\"" + escapeHtml(fullTime) + "\">" +
           escapeHtml(shortTime) + "</strong>";
       }
       if (fetchInFlight) {
         el.innerHTML = lastBit
-          ? lastBit + " · <em>Updating&hellip;</em>"
-          : "Updating leaderboard&hellip;";
+          ? lastBit + " · <em>" + escapeHtml(t("updating")) + "</em>"
+          : escapeHtml(t("updating"));
         return;
       }
       if (!nextReloadAt) {
@@ -1081,13 +1338,13 @@
         return;
       }
       const sec = Math.max(0, Math.ceil((nextReloadAt - Date.now()) / 1000));
-      const refreshBit = "Next auto-refresh in <strong>" + String(sec) + "</strong> s";
+      const refreshBit = t("nextRefreshHtml", String(sec));
       el.innerHTML = lastBit ? lastBit + " · " + refreshBit : refreshBit;
     }
 
     function setLoading(on) {
       $("go").disabled = on;
-      $("go").textContent = on ? "Loading…" : "Update";
+      $("go").textContent = on ? t("loading") : t("btnUpdate");
     }
 
     function showError(msg) {
@@ -1101,9 +1358,9 @@
       const shortTime = formatFetchedAtShort(data.fetchedAt);
       const fullTime = formatFetchedAtFull(data.fetchedAt);
       $("meta").innerHTML =
-        "Last updated: <strong title=\"" + escapeHtml(fullTime) + "\">" + escapeHtml(shortTime) + "</strong>" +
-        " · Source: <strong>" + escapeHtml(src) + "</strong>" +
-        " · <strong>" + (data.rows || []).length + "</strong> rows";
+        escapeHtml(t("lastUpdated")) + ": <strong title=\"" + escapeHtml(fullTime) + "\">" + escapeHtml(shortTime) + "</strong>" +
+        " · " + escapeHtml(t("source")) + ": <strong>" + escapeHtml(src) + "</strong>" +
+        " · <strong>" + (data.rows || []).length + "</strong> " + escapeHtml(t("rows"));
       const hr = $("head");
       const bd = $("gridBody");
       hr.innerHTML = "";
@@ -1135,13 +1392,13 @@
       hint.hidden = true;
       hint.textContent = "";
       if (!pool) {
-        body.innerHTML = "<p class='error' style='margin:0'>No pool data.</p>";
+        body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(t("noPoolData")) + "</p>";
         return;
       }
       body.innerHTML = "";
 
       if (pool.fileExists === false) {
-        body.innerHTML = "<p class='error' style='margin:0'><strong>No pool file.</strong></p>";
+        body.innerHTML = "<p class='error' style='margin:0'><strong>" + escapeHtml(t("noPoolFile")) + "</strong></p>";
         return;
       }
 
@@ -1152,17 +1409,17 @@
 
       const st = pool.standings;
       if (!st) {
-        body.textContent = "No standings.";
+        body.textContent = t("noPoolData");
         return;
       }
       if (!st.ok) {
-        body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(st.error || "Pool error") + "</p>";
+        body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(st.error || t("poolError")) + "</p>";
         return;
       }
 
       const isPga = (lb.source || "").indexOf("pgatour.com") !== -1;
       if (!isPga) {
-        body.innerHTML = "<p class='error' style='margin:0'>Pool needs the default PGA leaderboard URL (pgatour.com).</p>";
+        body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(t("poolNeedsPga")) + "</p>";
         return;
       }
 
@@ -1174,8 +1431,8 @@
       inp.type = "text";
       inp.id = "meBettor";
       inp.setAttribute("list", "meBettorList");
-      inp.placeholder = "look up name";
-      inp.setAttribute("aria-label", "Look up name");
+      inp.placeholder = t("lookUpNamePlaceholder");
+      inp.setAttribute("aria-label", t("lookUpNameLabel"));
       inp.autocomplete = "off";
       const dl = document.createElement("datalist");
       dl.id = "meBettorList";
@@ -1187,7 +1444,7 @@
       const btnClr = document.createElement("button");
       btnClr.type = "button";
       btnClr.className = "secondary";
-      btnClr.textContent = "Clear";
+      btnClr.textContent = t("btnClear");
       toolbar.appendChild(inp);
       toolbar.appendChild(btnClr);
       toolbar.appendChild(dl);
@@ -1201,26 +1458,7 @@
       body.appendChild(youCard);
 
       if (rulesPanel) {
-        const nDrop = st.picks_per_friend - st.counting_picks;
-        rulesPanel.innerHTML =
-          '<div class="pool-rules-sub">Scoring</div>' +
-          '<p>You have <strong>' +
-          String(st.picks_per_friend) +
-          '</strong> picks per player. Your <strong>total</strong> is the sum of points from the <strong>' +
-          String(st.counting_picks) +
-          '</strong> picks that count. <strong>Lowest total wins.</strong></p>' +
-          '<p>Each pick earns points equal to that golfer&rsquo;s <strong>listed leaderboard position</strong> (a worse finish means a higher number). The leaderboard carries the latest standings between rounds, so a pick simply shows wherever the player currently sits.</p>' +
-          '<p>Two cases score the maximum <strong>' +
-          String(st.cut_points) +
-          '</strong> points:</p>' +
-          '<ul class="pool-rules-list">' +
-          '<li><strong>Missed the cut</strong> &mdash; final for the rest of the tournament.</li>' +
-          '<li><strong>Hasn&rsquo;t teed off yet</strong> &mdash; only happens before Round 1, while the leaderboard hasn&rsquo;t recorded a position. As soon as the player hits a shot, a real position appears and replaces this placeholder on the next refresh.</li>' +
-          '</ul>' +
-          '<div class="pool-rules-sub">Which picks count?</div>' +
-          '<p>We drop your <strong>' +
-          String(nDrop) +
-          '</strong> picks with the <strong>highest</strong> point totals (your worst results). When several picks tie on points, we drop the higher-numbered pots first &mdash; so your marquee early-tier picks stay protected. Dropped chips are <strong>struck through</strong> and are not added to your total.</p>';
+        rulesPanel.innerHTML = t("rulesPanel", st);
       }
 
       function pickChipsHtml(picks) {
@@ -1232,7 +1470,7 @@
             const lastFull = escapeHtml(p.pick);
             const lastShort = escapeHtml(lastWordOf(p.pick));
             inner =
-              "<span class='pick-chip drop' title='" + escapeHtml(p.pick + " (no match)") + "'>" +
+              "<span class='pick-chip drop' title='" + escapeHtml(p.pick + " " + t("noMatch")) + "'>" +
               "<span class='chip-name-full'>" + lastFull + "</span>" +
               "<span class='chip-name-last'>" + lastShort + "</span>" +
               "</span>";
@@ -1249,13 +1487,13 @@
               "'>" +
               "<span class='chip-name-full'>" + escapeHtml(lab) + "</span>" +
               "<span class='chip-name-last'>" + escapeHtml(lastWordOf(lab)) + "</span>" +
-              " " +
-              escapeHtml(pts) +
+              "<span class='chip-pts-sep'> </span>" +
+              "<span class='chip-pts'>" + escapeHtml(pts) + "</span>" +
               "</span>";
           }
           const doneFlag =
             !p.missing && p.doneFinalRound
-              ? '<span class="pick-done-flag" role="img" aria-label="Finished final round" title="Finished final round">\u2713</span>'
+              ? '<span class="pick-done-flag" role="img" aria-label="' + escapeHtml(t("finishedFinalRoundLabel")) + '" title="' + escapeHtml(t("finishedFinalRoundTitle")) + '">\u2713</span>'
               : "";
           return "<div class='" + slotCls + "'>" + doneFlag + inner + "</div>";
         }).join("") + "</div>";
@@ -1271,7 +1509,7 @@
       tbl.appendChild(cg);
       const thead = document.createElement("thead");
       const trh = document.createElement("tr");
-      ["Name", "", "Rank", "Total", "Picks"].forEach((h, hi) => {
+      [t("colName"), "", t("colRank"), t("colTotal"), t("colPicks")].forEach((h, hi) => {
         const th = document.createElement("th");
         if (hi === 1) {
           th.className = "th-trophy";
@@ -1303,7 +1541,7 @@
         tdN.textContent = fr.name;
         tdN.setAttribute("role", "button");
         tdN.setAttribute("tabindex", "0");
-        tdN.title = fr.name + " — tap for full pick list";
+        tdN.title = t("tapForPicks", fr.name);
         tdN.addEventListener("click", () => openBettorModal(fr, st));
         tdN.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -1315,11 +1553,11 @@
         tdTr.className = "trophy-col";
         if (fr.ok && fr.rank === 1) {
           tdTr.innerHTML =
-            "<span class='rank-trophy rank-trophy--gold' title='1st place — top prize' aria-label='1st place, top prize'>" +
+            "<span class='rank-trophy rank-trophy--gold' title='" + escapeHtml(t("trophyGoldTitle")) + "' aria-label='" + escapeHtml(t("trophyGoldAria")) + "'>" +
             "<span aria-hidden='true'>🏆</span></span>";
         } else if (fr.ok && fr.rank === 2) {
           tdTr.innerHTML =
-            "<span class='rank-trophy rank-trophy--silver' title='2nd place — runner-up prize' aria-label='2nd place, runner-up prize'>" +
+            "<span class='rank-trophy rank-trophy--silver' title='" + escapeHtml(t("trophySilverTitle")) + "' aria-label='" + escapeHtml(t("trophySilverAria")) + "'>" +
             "<span aria-hidden='true'>🏆</span></span>";
         } else {
           tdTr.innerHTML = "";
@@ -1327,7 +1565,7 @@
         const tdT = document.createElement("td");
         tdT.className = "poolscore" + (fr.ok ? "" : " muted");
         tdT.textContent = fr.ok ? String(fr.total) : "—";
-        tdT.setAttribute("title", fr.ok ? "Sum of best " + st.counting_picks + " of " + st.picks_per_friend + " picks (lower is better)" : "");
+        tdT.setAttribute("title", fr.ok ? t("totalTooltip", st.counting_picks, st.picks_per_friend) : "");
         const tdP = document.createElement("td");
         tdP.className = "picks-cell";
         if (fr.picks && fr.picks.length) {
@@ -1385,15 +1623,15 @@
           let slot = "<span class='you-trophy-slot'></span>";
           if (fr.rank === 1) {
             slot =
-              "<span class='you-trophy-slot'><span class='rank-trophy rank-trophy--gold' title='1st place — top prize' aria-hidden='true'>🏆</span></span>";
+              "<span class='you-trophy-slot'><span class='rank-trophy rank-trophy--gold' title='" + escapeHtml(t("trophyGoldTitle")) + "' aria-hidden='true'>🏆</span></span>";
           } else if (fr.rank === 2) {
             slot =
-              "<span class='you-trophy-slot'><span class='rank-trophy rank-trophy--silver' title='2nd place — runner-up prize' aria-hidden='true'>🏆</span></span>";
+              "<span class='you-trophy-slot'><span class='rank-trophy rank-trophy--silver' title='" + escapeHtml(t("trophySilverTitle")) + "' aria-hidden='true'>🏆</span></span>";
           }
           youRankBits =
             "<span class='you-rank-row'>" +
             slot +
-            "<span class='you-rank'>Rank <strong>" +
+            "<span class='you-rank'>" + escapeHtml(t("rank")) + " <strong>" +
             String(fr.rank) +
             "</strong></span></span>";
         }
@@ -1401,8 +1639,8 @@
           "<h3>" + escapeHtml(fr.name) + "</h3>" +
           "<div class='you-stats'>" +
           (fr.ok && fr.rank != null
-            ? youRankBits + "<span class='you-pts'>Total <strong>" + String(fr.total) + "</strong></span>"
-            : "<span class='you-pts'>Total <strong>—</strong></span>") +
+            ? youRankBits + "<span class='you-pts'>" + escapeHtml(t("total")) + " <strong>" + String(fr.total) + "</strong></span>"
+            : "<span class='you-pts'>" + escapeHtml(t("total")) + " <strong>—</strong></span>") +
           "</div>" +
           "<div class='you-picks'>" + picksHtml + "</div>";
       }
@@ -1440,7 +1678,7 @@
       fetchInFlight = true;
       updateReloadCountdownDisplay();
       setLoading(true);
-      $("meta").textContent = "Fetching…";
+      $("meta").textContent = t("fetching");
       showError("");
       try {
         const res = await fetch("./data.json?_=" + Date.now(), { cache: "no-store" });
@@ -1448,14 +1686,15 @@
         const bundle = await res.json();
         if (seq !== loadSeq) return;
         if (bundle.error) throw new Error(bundle.error);
+        lastBundle = bundle;
         lastFetchedAtRaw = (bundle.leaderboard && bundle.leaderboard.fetchedAt) || null;
         renderLeaderboard(bundle.leaderboard);
         renderPool(bundle.pool, bundle.leaderboard);
       } catch (e) {
         if (seq !== loadSeq) return;
         showError(e.message || String(e));
-        $("meta").textContent = "Request failed.";
-        $("poolBody").innerHTML = "<p class='error' style='margin:0'>Could not load data.json. Try again in a moment.</p>";
+        $("meta").textContent = t("requestFailed");
+        $("poolBody").innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(t("couldNotLoad")) + "</p>";
       } finally {
         if (seq === loadSeq) {
           fetchInFlight = false;
@@ -1486,6 +1725,10 @@
 
     $("go").addEventListener("click", load);
     setInterval(updateReloadCountdownDisplay, 500);
+    document.documentElement.lang = currentLang === "no" ? "nb" : "en";
+    applyStaticI18n();
+    applyLangButtons();
+    initLangToggle();
     load();
   </script>
 </body>

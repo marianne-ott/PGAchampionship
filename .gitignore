@@ -7,3 +7,6 @@ venv/
 .idea/
 .vscode/
 pool.json.bak
+node_modules/
+package.json
+package-lock.json
