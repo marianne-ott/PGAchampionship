@@ -540,6 +540,28 @@
       }
       .pool-rotate-hint__text { flex: 1 1 auto; }
       .pool-rotate-hint__text strong { color: var(--masters); font-weight: 700; }
+      /* Phone-portrait only: stack the section as a flex column so we can
+         interleave the rotate hint between the rules and search rows.
+         pool-top-row becomes display:contents, hoisting its search + rules
+         slots up into section.pool's flex flow so `order` can rearrange
+         them. Final stacking from top: rotate hint, rules, search, table. */
+      #panelPool section.pool {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+      }
+      #panelPool .pool-top-row { display: contents; }
+      #panelPool .pool-rotate-hint     { order: 1; margin: 0; }
+      #panelPool .pool-top-row__rules  { order: 2; margin: 0; }
+      #panelPool .pool-top-row__search { order: 3; margin: 0; }
+      #panelPool #poolBody             { order: 4; margin: 0; }
+      /* The slot widths come from a flex row context that no longer
+         exists; reset them so the stacked items just fill the column. */
+      #panelPool .pool-top-row__search,
+      #panelPool .pool-top-row__rules { flex: 0 0 auto; min-width: 0; }
+      /* The toolbar (search + Clear) inside the search slot used to set
+         its own bottom margin; the section.pool gap now owns spacing. */
+      #panelPool .pool-top-row__search .pool-toolbar { margin-bottom: 0; }
     }
     @keyframes rotateHintTilt {
       0%, 18%   { transform: rotate(0deg); }
