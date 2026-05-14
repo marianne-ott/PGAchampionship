@@ -139,7 +139,7 @@
       padding: 0.18rem;
     }
     .lang-btn {
-      padding: 0.28rem 0.55rem;
+      padding: 0.28rem 0.45rem;
       border: none;
       background: transparent;
       color: rgba(255, 255, 255, 0.78);
@@ -152,6 +152,7 @@
       border-radius: 3px;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 0.32rem;
       box-shadow: none;
       line-height: 1;
@@ -167,7 +168,7 @@
       color: #fff;
     }
     .lang-btn .lang-flag {
-      font-size: 1rem;
+      font-size: 1.15rem;
       line-height: 1;
       filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
     }
@@ -344,11 +345,12 @@
       min-width: 2.35rem;
       padding: 0.2rem 0.45rem;
       border-radius: 4px;
-      background: rgba(0, 35, 75, 0.1);
-      /* Transparent border keeps the box dimensions stable, but leaves
-         no visible second horizontal line inside the rank column —
-         which used to look like a "step" against the row divider. The
-         leader override below paints this border gold for the #1 pill. */
+      /* Transparent bg + transparent border on regular rows so the
+         pill introduces no extra horizontal edges inside the rank
+         column. The row-divider line stays a single straight line all
+         the way across. The leader override below paints this gold for
+         the #1 pill, which is the only one that should pop visually. */
+      background: transparent;
       border: 1px solid transparent;
       font-family: var(--display-font);
       font-weight: 800;
@@ -1224,8 +1226,8 @@
     <div class="toolbar">
       <p id="reloadCountdown" class="reload-countdown" aria-live="polite"></p>
       <div class="lang-toggle" role="group" data-i18n-aria="languageGroup" aria-label="Language">
-        <button type="button" class="lang-btn" data-lang="no" aria-pressed="true" data-i18n-title="switchToNorwegian" title="Bytt til norsk"><span class="lang-flag" aria-hidden="true">🇳🇴</span> NO</button>
-        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" data-i18n-title="switchToEnglish" title="Switch to English"><span class="lang-flag" aria-hidden="true">🇬🇧</span> EN</button>
+        <button type="button" class="lang-btn" data-lang="no" aria-pressed="true" data-i18n-title="switchToNorwegian" data-i18n-aria="switchToNorwegian" title="Bytt til norsk" aria-label="Bytt til norsk"><span class="lang-flag" aria-hidden="true">🇳🇴</span></button>
+        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" data-i18n-title="switchToEnglish" data-i18n-aria="switchToEnglish" title="Switch to English" aria-label="Switch to English"><span class="lang-flag" aria-hidden="true">🇬🇧</span></button>
       </div>
     </div>
   </header>
@@ -1815,9 +1817,28 @@
       const MAX = 8;
       let activeIdx = -1;
 
+      const NORDIC_COUNTRY_RE = /\((NOR|SWE|DEN)\)/;
+      const NORDIC_COUNTRY_ORDER = { NOR: 0, SWE: 1, DEN: 2 };
       function matches(q) {
         const ql = (q || "").trim().toLowerCase();
-        if (!ql) return leaderboardPlayers.slice(0, MAX);
+        if (!ql) {
+          /* Empty query: surface the Scandinavian contingent grouped by
+             country (NOR → SWE → DEN) and then alphabetically by name,
+             rather than the global top of the field. The dropdown
+             scrolls, so we don't cap the list. */
+          return leaderboardPlayers
+            .map((p) => {
+              const m = p.name.match(NORDIC_COUNTRY_RE);
+              return m ? { p: p, country: m[1] } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => {
+              const co = NORDIC_COUNTRY_ORDER[a.country] - NORDIC_COUNTRY_ORDER[b.country];
+              if (co !== 0) return co;
+              return a.p.name.localeCompare(b.p.name, "en", { sensitivity: "base" });
+            })
+            .map((x) => x.p);
+        }
         const prefix = leaderboardPlayers.filter((p) => p.name.toLowerCase().startsWith(ql));
         const seen = new Set(prefix.map((p) => p.name));
         const sub = leaderboardPlayers.filter((p) => !seen.has(p.name) && p.name.toLowerCase().includes(ql));

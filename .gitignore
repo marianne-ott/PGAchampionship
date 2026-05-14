@@ -10,3 +10,9 @@ pool.json.bak
 node_modules/
 package.json
 package-lock.json
+# …but the Cloudflare Worker subproject needs its package.json + lock
+# committed so anyone can `npm install` and deploy it.
+!cloudflare-worker/package.json
+!cloudflare-worker/package-lock.json
+# Cloudflare Workers leaves a local cache here when running `wrangler dev`.
+cloudflare-worker/.wrangler/

@@ -1,0 +1,23 @@
+name = "pga-refresh-worker"
+main = "src/index.js"
+# Pin the compatibility date — keeps the worker behaviour stable even if
+# Cloudflare ships breaking runtime updates later.
+compatibility_date = "2025-09-23"
+
+# Cron triggers fire `scheduled()` in src/index.js.
+# Free tier minimum interval is 1 minute; we use 2 minutes which gives
+# a comfortable cadence while staying well under any rate limits.
+[triggers]
+crons = ["*/2 * * * *"]
+
+# Secrets are intentionally NOT defined here. Set them after deploy:
+#   wrangler secret put GITHUB_TOKEN     ← required
+#   wrangler secret put TRIGGER_SECRET   ← optional (for /trigger HTTP)
+#
+# Anything in this file is committed to git; secrets must NEVER be.
+
+# Cloudflare's observability — we get scheduled-event logs visible via
+# `wrangler tail` and in the Workers dashboard, which makes it easy to
+# confirm the cron is firing and the GitHub API call is succeeding.
+[observability]
+enabled = true

@@ -1,0 +1,14 @@
+{
+  "name": "pga-refresh-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker that triggers the PGA leaderboard refresh workflow every 2 minutes via workflow_dispatch — works around GitHub's unreliable cron throttling.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.91.0"
+  }
+}
