@@ -883,7 +883,6 @@
         <button type="button" class="lang-btn" data-lang="no" aria-pressed="true" data-i18n-title="switchToNorwegian" title="Bytt til norsk"><span class="lang-flag" aria-hidden="true">🇳🇴</span> NO</button>
         <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" data-i18n-title="switchToEnglish" title="Switch to English"><span class="lang-flag" aria-hidden="true">🇬🇧</span> EN</button>
       </div>
-      <button type="button" id="go" data-i18n="btnUpdate">Update</button>
     </div>
   </header>
   <main class="page-main">
@@ -948,13 +947,11 @@
     /* ----- i18n -------------------------------------------------------- */
     const STRINGS = {
       no: {
-        btnUpdate: "Oppdater",
         btnClear: "Tøm",
         tabPool: "Mine 7",
         tabPga: "PGA-tabell",
         loading: "Laster…",
         fetching: "Henter…",
-        updating: "Oppdaterer…",
         notLoadedYet: "Ikke lastet enda.",
         requestFailed: "Forespørselen feilet.",
         couldNotLoad: "Kunne ikke laste data.json. Prøv igjen om litt.",
@@ -982,7 +979,9 @@
         tapForPicks: (name) => name + " — trykk for å se alle valg",
         totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
         lastUpdated: "Sist oppdatert",
-        nextRefreshHtml: (s) => "Neste auto-oppdatering om <strong>" + s + "</strong> s",
+        nextUpdateInHtml: (mmss) => "Neste oppdatering om <strong>" + mmss + "</strong>",
+        buildingNew: "henter nye data…",
+        checkingForNew: "sjekker for nye data…",
         source: "Kilde",
         rows: "rader",
         trophyGoldTitle: "1. plass — toppgevinst",
@@ -1012,13 +1011,11 @@
         },
       },
       en: {
-        btnUpdate: "Update",
         btnClear: "Clear",
         tabPool: "Chosen 7",
         tabPga: "PGA leaderboard",
         loading: "Loading…",
         fetching: "Fetching…",
-        updating: "Updating…",
         notLoadedYet: "Not loaded yet.",
         requestFailed: "Request failed.",
         couldNotLoad: "Could not load data.json. Try again in a moment.",
@@ -1046,7 +1043,9 @@
         tapForPicks: (name) => name + " — tap for full pick list",
         totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
         lastUpdated: "Last updated",
-        nextRefreshHtml: (s) => "Next auto-refresh in <strong>" + s + "</strong> s",
+        nextUpdateInHtml: (mmss) => "Next update in <strong>" + mmss + "</strong>",
+        buildingNew: "fetching new data…",
+        checkingForNew: "checking for new data…",
         source: "Source",
         rows: "rows",
         trophyGoldTitle: "1st place — top prize",
@@ -1128,7 +1127,6 @@
       document.documentElement.lang = lang === "no" ? "nb" : "en";
       applyStaticI18n();
       applyLangButtons();
-      if ($("go") && !$("go").disabled) $("go").textContent = t("btnUpdate");
       if (lastBundle) {
         renderLeaderboard(lastBundle.leaderboard);
         renderPool(lastBundle.pool, lastBundle.leaderboard);
@@ -1294,10 +1292,37 @@
     }
     initBettorDialog();
 
-    const AUTO_RELOAD_MS = 60000;
+    /* The data file is rebuilt by a GitHub Actions cron that fires every
+       five minutes (UTC). We don't trigger the rebuild from the browser —
+       we just fetch the static JSON whenever it might have changed.
+       During the build window (the ~90 s after a cron tick) we poll a
+       little more frequently so the new file lands fast; otherwise we
+       poll on a relaxed schedule. */
+    const FIVE_MIN_MS = 5 * 60 * 1000;
+    const BUILD_WINDOW_MS = 90 * 1000;
+    const POLL_NORMAL_MS = 30 * 1000;
+    const POLL_BUSY_MS = 10 * 1000;
     let autoReloadTimer = null;
-    let nextReloadAt = 0;
     let fetchInFlight = false;
+
+    function lastCronTickMs() {
+      const now = new Date();
+      const inCycleMs =
+        (now.getUTCMinutes() % 5) * 60000 +
+        now.getUTCSeconds() * 1000 +
+        now.getUTCMilliseconds();
+      return now.getTime() - inCycleMs;
+    }
+    function nextCronTickMs() { return lastCronTickMs() + FIVE_MIN_MS; }
+    function timeSinceLastTickMs() { return Date.now() - lastCronTickMs(); }
+    function inBuildWindow() { return timeSinceLastTickMs() < BUILD_WINDOW_MS; }
+
+    function formatMmSs(ms) {
+      const total = Math.max(0, Math.ceil(ms / 1000));
+      const m = Math.floor(total / 60);
+      const s = total % 60;
+      return m + ":" + (s < 10 ? "0" + s : String(s));
+    }
 
     function cancelAutoReload() {
       if (autoReloadTimer) {
@@ -1308,11 +1333,11 @@
 
     function scheduleNextAutoReload() {
       cancelAutoReload();
-      nextReloadAt = Date.now() + AUTO_RELOAD_MS;
+      const delay = inBuildWindow() ? POLL_BUSY_MS : POLL_NORMAL_MS;
       autoReloadTimer = setTimeout(() => {
         autoReloadTimer = null;
         load();
-      }, AUTO_RELOAD_MS);
+      }, delay);
       updateReloadCountdownDisplay();
     }
 
@@ -1327,24 +1352,16 @@
           escapeHtml(t("lastUpdated")) + " <strong title=\"" + escapeHtml(fullTime) + "\">" +
           escapeHtml(shortTime) + "</strong>";
       }
+      let statusBit;
       if (fetchInFlight) {
-        el.innerHTML = lastBit
-          ? lastBit + " · <em>" + escapeHtml(t("updating")) + "</em>"
-          : escapeHtml(t("updating"));
-        return;
+        statusBit = "<em>" + escapeHtml(t("checkingForNew")) + "</em>";
+      } else if (inBuildWindow()) {
+        statusBit = "<em>" + escapeHtml(t("buildingNew")) + "</em>";
+      } else {
+        const ms = nextCronTickMs() - Date.now();
+        statusBit = t("nextUpdateInHtml", formatMmSs(ms));
       }
-      if (!nextReloadAt) {
-        el.innerHTML = lastBit;
-        return;
-      }
-      const sec = Math.max(0, Math.ceil((nextReloadAt - Date.now()) / 1000));
-      const refreshBit = t("nextRefreshHtml", String(sec));
-      el.innerHTML = lastBit ? lastBit + " · " + refreshBit : refreshBit;
-    }
-
-    function setLoading(on) {
-      $("go").disabled = on;
-      $("go").textContent = on ? t("loading") : t("btnUpdate");
+      el.innerHTML = lastBit ? lastBit + " · " + statusBit : statusBit;
     }
 
     function showError(msg) {
@@ -1677,7 +1694,6 @@
       cancelAutoReload();
       fetchInFlight = true;
       updateReloadCountdownDisplay();
-      setLoading(true);
       $("meta").textContent = t("fetching");
       showError("");
       try {
@@ -1698,7 +1714,6 @@
       } finally {
         if (seq === loadSeq) {
           fetchInFlight = false;
-          setLoading(false);
           scheduleNextAutoReload();
         }
       }
@@ -1723,7 +1738,6 @@
     }
     initTabs();
 
-    $("go").addEventListener("click", load);
     setInterval(updateReloadCountdownDisplay, 500);
     document.documentElement.lang = currentLang === "no" ? "nb" : "en";
     applyStaticI18n();
