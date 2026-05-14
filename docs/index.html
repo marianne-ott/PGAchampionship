@@ -552,7 +552,11 @@
       }
       #panelPool .pool-top-row { display: contents; }
       #panelPool .pool-rotate-hint     { order: 1; margin: 0; }
-      #panelPool .pool-top-row__rules  { order: 2; margin: 0; }
+      /* Competition rules header is hidden on phone portrait — the
+         regulars know the rules and the screen is too narrow for the
+         heading + (i) trigger without it brushing the edge. Still
+         visible (with the rules popup) on landscape + wide screens. */
+      #panelPool .pool-top-row__rules  { display: none; }
       #panelPool .pool-top-row__search { order: 3; margin: 0; }
       #panelPool #poolBody             { order: 4; margin: 0; }
       /* The slot widths come from a flex row context that no longer
