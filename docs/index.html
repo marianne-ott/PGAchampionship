@@ -269,7 +269,10 @@
       padding-left: 0.12rem;
       padding-right: 0.12rem;
     }
-    .pool thead th:nth-child(3) { font-size: 0.72rem; letter-spacing: 0.06em; }
+    /* The RANK column header is short — give it the same compact small-caps
+       treatment as before. Its position changed (was col 3, now col 1) when
+       we switched to leaderboard-style ordering: rank | trophy | name | total | picks. */
+    .pool thead th:nth-child(1) { font-size: 0.72rem; letter-spacing: 0.06em; }
     .pool tbody tr:nth-child(even) { background: var(--row-alt); }
     .pool tbody tr:nth-child(odd) { background: var(--surface); }
     .pool tr.leader td { color: var(--masters-dark); background: var(--leader-row) !important; }
@@ -400,9 +403,12 @@
         font-size: 0.7rem;
         letter-spacing: 0.08em;
       }
-      .pool table thead th:nth-child(1) { flex: 1 1 auto; min-width: 0; }
+      /* Header columns in leaderboard order: rank | trophy | name | total | picks.
+         The name header takes all the remaining space; rank/trophy/total are
+         compact fixed-width packs on either side. */
+      .pool table thead th:nth-child(1) { flex: 0 0 auto; min-width: 1.85rem; text-align: center; }
       .pool table thead th:nth-child(2) { flex: 0 0 auto; min-width: 1.25rem; text-align: center; }
-      .pool table thead th:nth-child(3) { flex: 0 0 auto; min-width: 1.85rem; text-align: center; }
+      .pool table thead th:nth-child(3) { flex: 1 1 auto; min-width: 0; }
       .pool table thead th:nth-child(4) { flex: 0 0 auto; min-width: 2.4rem; text-align: right; }
       .pool table thead th:nth-child(5) { display: none; }
       .pool table tbody { display: block; }
@@ -1239,7 +1245,7 @@
         bestXofY: (x, y) => "Beste " + x + " av " + y,
         potN: (n) => "Pott " + n,
         noMatch: "(ingen treff)",
-        legendText: (cp, pp) => "Grålagte valg trekkes fra totalen (kun de " + cp + " beste av " + pp + " teller). Lavere total = bedre.",
+        legendText: (cp, pp) => "Grålagte valg trekkes fra totalen.",
         tapForPicks: (name) => name + " — trykk for å se alle valg",
         totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
         lastUpdated: "Sist oppdatert",
@@ -1299,7 +1305,7 @@
         bestXofY: (x, y) => "Best " + x + " of " + y,
         potN: (n) => "Pot " + n,
         noMatch: "(no match)",
-        legendText: (cp, pp) => "Greyed-out picks are dropped from the total (only the best " + cp + " of " + pp + " count). Lower total = better.",
+        legendText: (cp, pp) => "Greyed-out picks are dropped from the total.",
         tapForPicks: (name) => name + " — tap for full pick list",
         totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
         lastUpdated: "Last updated",
@@ -1941,7 +1947,7 @@
 
       const tbl = document.createElement("table");
       const cg = document.createElement("colgroup");
-      ["col-name", "col-trophy", "col-rank", "col-score", "col-picks"].forEach((cls) => {
+      ["col-rank", "col-trophy", "col-name", "col-score", "col-picks"].forEach((cls) => {
         const col = document.createElement("col");
         col.className = cls;
         cg.appendChild(col);
@@ -1949,7 +1955,7 @@
       tbl.appendChild(cg);
       const thead = document.createElement("thead");
       const trh = document.createElement("tr");
-      [t("colName"), "", t("colRank"), t("colTotal"), t("colPicks")].forEach((h, hi) => {
+      [t("colRank"), "", t("colName"), t("colTotal"), t("colPicks")].forEach((h, hi) => {
         const th = document.createElement("th");
         if (hi === 1) {
           th.className = "th-trophy";
@@ -2013,9 +2019,9 @@
         } else {
           tdP.textContent = fr.error || "";
         }
-        tr.appendChild(tdN);
-        tr.appendChild(tdTr);
         tr.appendChild(tdR);
+        tr.appendChild(tdTr);
+        tr.appendChild(tdN);
         tr.appendChild(tdT);
         tr.appendChild(tdP);
         tb.appendChild(tr);
