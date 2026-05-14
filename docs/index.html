@@ -1314,7 +1314,6 @@
         tabPool: "Chosen 7",
         tabPga: "PGA-tabell",
         loading: "Laster…",
-        fetching: "Henter…",
         notLoadedYet: "Ikke lastet enda.",
         requestFailed: "Forespørselen feilet.",
         couldNotLoad: "Kunne ikke laste data.json. Prøv igjen om litt.",
@@ -1347,7 +1346,6 @@
         cadenceTournament: "Oppdateres hvert minutt",
         cadencePost: "Oppdateres ca. hvert 5. minutt",
         source: "Kilde",
-        rows: "rader",
         trophyGoldTitle: "1. plass — toppgevinst",
         trophyGoldAria: "1. plass, toppgevinst",
         trophySilverTitle: "2. plass — andreplass",
@@ -1374,7 +1372,6 @@
         tabPool: "Chosen 7",
         tabPga: "PGA leaderboard",
         loading: "Loading…",
-        fetching: "Fetching…",
         notLoadedYet: "Not loaded yet.",
         requestFailed: "Request failed.",
         couldNotLoad: "Could not load data.json. Try again in a moment.",
@@ -1407,7 +1404,6 @@
         cadenceTournament: "Updates every minute",
         cadencePost: "Updates roughly every 5 min",
         source: "Source",
-        rows: "rows",
         trophyGoldTitle: "1st place — top prize",
         trophyGoldAria: "1st place, top prize",
         trophySilverTitle: "2nd place — runner-up prize",
@@ -1646,24 +1642,25 @@
     }
     initBettorDialog();
 
-    /* The data file is rebuilt by a GitHub Actions workflow with two
-       staggered crons (~2-3 min cadence during the tournament, 5 min
-       after). We don't trigger the rebuild from the browser; we just
-       fetch the static JSON whenever it might have changed. When we're
-       waiting for a build that's expected to have produced fresh data,
-       we poll a little more frequently so the new file lands fast;
-       otherwise we poll on a relaxed schedule. */
+    /* The data file is rebuilt by a GitHub Actions workflow. During the
+       tournament burst, a Cloudflare Worker fires `workflow_dispatch`
+       every minute (see cloudflare-worker/); after the burst, only the
+       baseline 5-minute GH cron in deploy.yml runs. The browser never
+       triggers a rebuild — it just polls the static JSON whenever it
+       might have changed, busy-polling briefly when a fresh build is
+       expected to have landed. */
     const ONE_MIN_MS = 60 * 1000;
     const POLL_NORMAL_MS = 30 * 1000;
     const POLL_BUSY_MS = 10 * 1000;
-    /* GitHub's build + Pages CDN propagation takes about a minute after a
-       cron fires. Don't flag data as "stale" until that grace has elapsed,
-       otherwise we busy-poll the entire window between cron ticks. */
+    /* GitHub's build + Pages CDN propagation takes about a minute after
+       a tick fires. Don't flag data as "stale" until that grace has
+       elapsed, otherwise we busy-poll the entire window between ticks. */
     const BUILD_GRACE_MS = 60 * 1000;
-    /* When the GitHub Actions workflow drops from ~2-3 min cadence (two
-       staggered crons) back to the 5-min baseline. Keep this in sync with
-       the cutoff in .github/workflows/deploy.yml. */
-    const TOURNAMENT_BURST_END_MS = Date.UTC(2026, 4 /* May */, 18, 13, 0, 0);
+    /* When the Cloudflare Worker stops dispatching every-minute builds
+       and we drop back to the GH-Actions 5-min baseline. Must match the
+       cutoffs in cloudflare-worker/src/index.js and the Cron-gate step
+       in .github/workflows/deploy.yml. */
+    const TOURNAMENT_BURST_END_MS = Date.UTC(2026, 4 /* May */, 20, 0, 0, 0);
     let autoReloadTimer = null;
     let fetchInFlight = false;
 
@@ -1671,21 +1668,19 @@
       return Date.now() < TOURNAMENT_BURST_END_MS;
     }
 
-    /* Returns the timestamp of the most recent cron tick we expect GH
-       Actions to have fired. The crons are `0-59/5` (always) plus
-       `2-59/5` during the tournament burst — i.e. minutes whose value
-       mod 5 is 0 or 2. */
+    /* Timestamp of the most recent rebuild tick we expect to have fired.
+       During the burst the worker fires every minute, so any minute mark
+       counts. Post-burst only the baseline `0-59/5` GH cron runs. */
     function lastCronTickMs() {
       const now = new Date();
-      const min = now.getUTCMinutes();
       const startOfThisMinuteMs =
         now.getTime() - now.getUTCSeconds() * 1000 - now.getUTCMilliseconds();
-      const burst = inTournamentBurst();
+      if (inTournamentBurst()) {
+        return startOfThisMinuteMs;
+      }
+      const min = now.getUTCMinutes();
       for (let dm = 0; dm < 5; dm++) {
-        const m = (min - dm + 60) % 60;
-        const isBaselineSlot = (m % 5) === 0;
-        const isBurstSlot = burst && (m % 5) === 2;
-        if (isBaselineSlot || isBurstSlot) {
+        if (((min - dm + 60) % 60) % 5 === 0) {
           return startOfThisMinuteMs - dm * ONE_MIN_MS;
         }
       }
@@ -1819,22 +1814,29 @@
 
       const NORDIC_COUNTRY_RE = /\((NOR|SWE|DEN)\)/;
       const NORDIC_COUNTRY_ORDER = { NOR: 0, SWE: 1, DEN: 2 };
+      function lastNameKey(name) {
+        const stripped = String(name || "").replace(/\s*\([A-Z]{2,3}\)\s*$/, "").trim();
+        const parts = stripped.split(/\s+/);
+        return parts.length ? parts[parts.length - 1] : stripped;
+      }
       function matches(q) {
         const ql = (q || "").trim().toLowerCase();
         if (!ql) {
           /* Empty query: surface the Scandinavian contingent grouped by
-             country (NOR → SWE → DEN) and then alphabetically by name,
-             rather than the global top of the field. The dropdown
-             scrolls, so we don't cap the list. */
+             country (NOR → SWE → DEN) and then alphabetically by *last*
+             name (Hovland before Reitan, etc.), rather than the global
+             top of the field. The dropdown scrolls, so we don't cap. */
           return leaderboardPlayers
             .map((p) => {
               const m = p.name.match(NORDIC_COUNTRY_RE);
-              return m ? { p: p, country: m[1] } : null;
+              return m ? { p: p, country: m[1], lastName: lastNameKey(p.name) } : null;
             })
             .filter(Boolean)
             .sort((a, b) => {
               const co = NORDIC_COUNTRY_ORDER[a.country] - NORDIC_COUNTRY_ORDER[b.country];
               if (co !== 0) return co;
+              const ln = a.lastName.localeCompare(b.lastName, "en", { sensitivity: "base" });
+              if (ln !== 0) return ln;
               return a.p.name.localeCompare(b.p.name, "en", { sensitivity: "base" });
             })
             .map((x) => x.p);

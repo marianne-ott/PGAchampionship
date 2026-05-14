@@ -67,7 +67,7 @@ jobs:
             echo "::notice::Running build (event=$EVT cron='$SCHED')"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Past 2026-05-18 13:00Z cutoff — skipping tournament-burst cron '$SCHED'"
+            echo "::notice::Past 2026-05-20 00:00Z cutoff — skipping tournament-burst cron '$SCHED'"
           fi
 
       - name: Checkout

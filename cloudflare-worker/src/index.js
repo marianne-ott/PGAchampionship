@@ -27,7 +27,7 @@ const REF = "main";
 // cutoff in .github/workflows/deploy.yml so the worker also drops back
 // to "let GitHub's 5-min baseline cron handle it" after the final round.
 // Extended through end-of-day 19 May UTC so Monday + Tuesday remain on
-// the 2-min cadence for post-tournament discussion.
+// the 1-minute cadence for post-tournament discussion.
 const CUTOFF_UTC = "2026-05-20T00:00:00Z";
 
 async function dispatchWorkflow(env) {

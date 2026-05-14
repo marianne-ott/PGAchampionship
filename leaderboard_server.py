@@ -50,10 +50,6 @@ def build_dashboard(url: str, pool_config_path: Path) -> dict[str, Any]:
     return {"leaderboard": lb, "pool": pool_payload}
 
 
-# Back-compat alias for older callers that imported the leading-underscore name.
-_build_dashboard = build_dashboard
-
-
 def _send_no_cache_headers(handler: BaseHTTPRequestHandler) -> None:
     handler.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
     handler.send_header("Pragma", "no-cache")
