@@ -979,9 +979,6 @@
         tapForPicks: (name) => name + " — trykk for å se alle valg",
         totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
         lastUpdated: "Sist oppdatert",
-        nextUpdateInHtml: (mmss) => "Neste oppdatering om <strong>" + mmss + "</strong>",
-        buildingNew: "henter nye data…",
-        checkingForNew: "sjekker for nye data…",
         source: "Kilde",
         rows: "rader",
         trophyGoldTitle: "1. plass — toppgevinst",
@@ -1043,9 +1040,6 @@
         tapForPicks: (name) => name + " — tap for full pick list",
         totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
         lastUpdated: "Last updated",
-        nextUpdateInHtml: (mmss) => "Next update in <strong>" + mmss + "</strong>",
-        buildingNew: "fetching new data…",
-        checkingForNew: "checking for new data…",
         source: "Source",
         rows: "rows",
         trophyGoldTitle: "1st place — top prize",
@@ -1313,24 +1307,16 @@
         now.getUTCMilliseconds();
       return now.getTime() - inCycleMs;
     }
-    function nextCronTickMs() { return lastCronTickMs() + FIVE_MIN_MS; }
 
     /* True if the most recent cron tick has already fired but we don't yet
        have data from after it — i.e. the new file is still building or
-       hasn't propagated to the CDN. As soon as a new fetchedAt arrives
-       this flips to false and the UI switches back to the countdown. */
+       hasn't propagated to the CDN. Used purely to drive how often we poll
+       for the new docs/data.json; not surfaced in the UI. */
     function isAwaitingNewBuild() {
       if (!lastFetchedAtRaw) return false;
       const dataTimeMs = new Date(lastFetchedAtRaw).getTime();
       if (isNaN(dataTimeMs)) return false;
       return dataTimeMs < lastCronTickMs();
-    }
-
-    function formatMmSs(ms) {
-      const total = Math.max(0, Math.ceil(ms / 1000));
-      const m = Math.floor(total / 60);
-      const s = total % 60;
-      return m + ":" + (s < 10 ? "0" + s : String(s));
     }
 
     function cancelAutoReload() {
@@ -1347,30 +1333,17 @@
         autoReloadTimer = null;
         load();
       }, delay);
-      updateReloadCountdownDisplay();
     }
 
     function updateReloadCountdownDisplay() {
       const el = $("reloadCountdown");
       if (!el) return;
-      let lastBit = "";
-      if (lastFetchedAtRaw) {
-        const shortTime = formatFetchedAtShort(lastFetchedAtRaw);
-        const fullTime = formatFetchedAtFull(lastFetchedAtRaw);
-        lastBit =
-          escapeHtml(t("lastUpdated")) + " <strong title=\"" + escapeHtml(fullTime) + "\">" +
-          escapeHtml(shortTime) + "</strong>";
-      }
-      let statusBit;
-      if (fetchInFlight) {
-        statusBit = "<em>" + escapeHtml(t("checkingForNew")) + "</em>";
-      } else if (isAwaitingNewBuild()) {
-        statusBit = "<em>" + escapeHtml(t("buildingNew")) + "</em>";
-      } else {
-        const ms = nextCronTickMs() - Date.now();
-        statusBit = t("nextUpdateInHtml", formatMmSs(ms));
-      }
-      el.innerHTML = lastBit ? lastBit + " · " + statusBit : statusBit;
+      if (!lastFetchedAtRaw) { el.innerHTML = ""; return; }
+      const shortTime = formatFetchedAtShort(lastFetchedAtRaw);
+      const fullTime = formatFetchedAtFull(lastFetchedAtRaw);
+      el.innerHTML =
+        escapeHtml(t("lastUpdated")) + " <strong title=\"" + escapeHtml(fullTime) + "\">" +
+        escapeHtml(shortTime) + "</strong>";
     }
 
     function showError(msg) {
@@ -1702,7 +1675,6 @@
       const seq = ++loadSeq;
       cancelAutoReload();
       fetchInFlight = true;
-      updateReloadCountdownDisplay();
       $("meta").textContent = t("fetching");
       showError("");
       try {
@@ -1715,6 +1687,7 @@
         lastFetchedAtRaw = (bundle.leaderboard && bundle.leaderboard.fetchedAt) || null;
         renderLeaderboard(bundle.leaderboard);
         renderPool(bundle.pool, bundle.leaderboard);
+        updateReloadCountdownDisplay();
       } catch (e) {
         if (seq !== loadSeq) return;
         showError(e.message || String(e));
@@ -1747,7 +1720,6 @@
     }
     initTabs();
 
-    setInterval(updateReloadCountdownDisplay, 500);
     document.documentElement.lang = currentLang === "no" ? "nb" : "en";
     applyStaticI18n();
     applyLangButtons();
