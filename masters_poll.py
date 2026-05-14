@@ -317,7 +317,11 @@ def leaderboard_snapshot_from_next(url: str, next_data: dict[str, Any]) -> dict[
     headers, rows, done_final = extract_leaderboard(url, next_data)
     return {
         "source": url,
-        "fetchedAt": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        # Emit ISO 8601 in UTC so the frontend can render it in the user's
+        # local timezone unambiguously (the previous local-time string was
+        # ambiguous between the GitHub Actions runner's UTC and a developer's
+        # machine TZ).
+        "fetchedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "columns": headers,
         "rows": rows,
         "rowDoneFinalRound": done_final,

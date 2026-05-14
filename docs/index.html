@@ -83,10 +83,14 @@
       color: rgba(255, 255, 255, 0.78);
       font-variant-numeric: tabular-nums;
       text-align: right;
-      white-space: nowrap;
       letter-spacing: 0.02em;
+      max-width: 100%;
     }
     .reload-countdown strong { color: var(--pga-gold); font-weight: 700; }
+    .reload-countdown em { font-style: italic; color: rgba(255, 255, 255, 0.92); }
+    @media (max-width: 600px) {
+      .reload-countdown { font-size: 0.78rem; }
+    }
     label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
     button {
       padding: 0.55rem 1.25rem;
@@ -889,6 +893,77 @@
       return parts.length ? parts[parts.length - 1] : "";
     }
 
+    function getDisplayTimeZone() {
+      // Prefer the visitor's local timezone. If the browser can't resolve
+      // one (extremely rare), fall back to Oslo since most of the pool is
+      // there.
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz) return tz;
+      } catch (e) { /* ignore */ }
+      return "Europe/Oslo";
+    }
+
+    function parseFetchedAt(s) {
+      if (!s) return null;
+      // New format: ISO 8601 with explicit Z or numeric offset.
+      if (/[Tt].*([Zz]|[+-]\d{2}:?\d{2})$/.test(s)) {
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      // Legacy format ("YYYY-MM-DD HH:MM:SS") — generated on the GitHub
+      // Actions runner whose local TZ is UTC, so treat it as UTC.
+      const m = String(s).match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})$/);
+      if (m) {
+        const d = new Date(m[1] + "T" + m[2] + "Z");
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatFetchedAtShort(s) {
+      const d = parseFetchedAt(s);
+      if (!d) return s || "—";
+      const tz = getDisplayTimeZone();
+      try {
+        return new Intl.DateTimeFormat([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+          timeZone: tz,
+          timeZoneName: "short",
+        }).format(d);
+      } catch (e) {
+        return d.toISOString();
+      }
+    }
+
+    function formatFetchedAtFull(s) {
+      const d = parseFetchedAt(s);
+      if (!d) return s || "";
+      const tz = getDisplayTimeZone();
+      try {
+        return new Intl.DateTimeFormat([], {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+          timeZone: tz,
+          timeZoneName: "long",
+        }).format(d) + " — " + tz;
+      } catch (e) {
+        return d.toISOString();
+      }
+    }
+
+    let lastFetchedAtRaw = null;
+
     function openBettorModal(friend, standings) {
       const dlg = $("bettorDialog");
       if (!dlg || !friend) return;
@@ -987,16 +1062,27 @@
     function updateReloadCountdownDisplay() {
       const el = $("reloadCountdown");
       if (!el) return;
+      let lastBit = "";
+      if (lastFetchedAtRaw) {
+        const shortTime = formatFetchedAtShort(lastFetchedAtRaw);
+        const fullTime = formatFetchedAtFull(lastFetchedAtRaw);
+        lastBit =
+          "Last updated <strong title=\"" + escapeHtml(fullTime) + "\">" +
+          escapeHtml(shortTime) + "</strong>";
+      }
       if (fetchInFlight) {
-        el.textContent = "Updating leaderboard…";
+        el.innerHTML = lastBit
+          ? lastBit + " · <em>Updating&hellip;</em>"
+          : "Updating leaderboard&hellip;";
         return;
       }
       if (!nextReloadAt) {
-        el.textContent = "";
+        el.innerHTML = lastBit;
         return;
       }
       const sec = Math.max(0, Math.ceil((nextReloadAt - Date.now()) / 1000));
-      el.innerHTML = "Next auto-refresh in <strong>" + String(sec) + "</strong> s";
+      const refreshBit = "Next auto-refresh in <strong>" + String(sec) + "</strong> s";
+      el.innerHTML = lastBit ? lastBit + " · " + refreshBit : refreshBit;
     }
 
     function setLoading(on) {
@@ -1012,8 +1098,10 @@
 
     function renderLeaderboard(data) {
       const src = data.source || "";
+      const shortTime = formatFetchedAtShort(data.fetchedAt);
+      const fullTime = formatFetchedAtFull(data.fetchedAt);
       $("meta").innerHTML =
-        "Last updated: <strong>" + (data.fetchedAt || "—") + "</strong>" +
+        "Last updated: <strong title=\"" + escapeHtml(fullTime) + "\">" + escapeHtml(shortTime) + "</strong>" +
         " · Source: <strong>" + escapeHtml(src) + "</strong>" +
         " · <strong>" + (data.rows || []).length + "</strong> rows";
       const hr = $("head");
@@ -1360,6 +1448,7 @@
         const bundle = await res.json();
         if (seq !== loadSeq) return;
         if (bundle.error) throw new Error(bundle.error);
+        lastFetchedAtRaw = (bundle.leaderboard && bundle.leaderboard.fetchedAt) || null;
         renderLeaderboard(bundle.leaderboard);
         renderPool(bundle.pool, bundle.leaderboard);
       } catch (e) {
