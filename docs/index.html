@@ -88,8 +88,17 @@
     }
     .reload-countdown strong { color: var(--pga-gold); font-weight: 700; }
     .reload-countdown em { font-style: italic; color: rgba(255, 255, 255, 0.92); }
+    .reload-cadence {
+      display: block;
+      margin-top: 0.1rem;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      font-style: italic;
+      letter-spacing: 0;
+    }
     @media (max-width: 600px) {
       .reload-countdown { font-size: 0.78rem; }
+      .reload-cadence { font-size: 0.66rem; }
     }
     .lang-toggle {
       display: inline-flex;
@@ -979,6 +988,8 @@
         tapForPicks: (name) => name + " — trykk for å se alle valg",
         totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
         lastUpdated: "Sist oppdatert",
+        cadenceTournament: "Oppdateres ca. hvert 2.\u20133. minutt under turneringen",
+        cadencePost: "Oppdateres ca. hvert 5. minutt",
         source: "Kilde",
         rows: "rader",
         trophyGoldTitle: "1. plass — toppgevinst",
@@ -1040,6 +1051,8 @@
         tapForPicks: (name) => name + " — tap for full pick list",
         totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
         lastUpdated: "Last updated",
+        cadenceTournament: "Updates roughly every 2\u20133 min during the tournament",
+        cadencePost: "Updates roughly every 5 min",
         source: "Source",
         rows: "rows",
         trophyGoldTitle: "1st place — top prize",
@@ -1297,8 +1310,16 @@
     const ONE_MIN_MS = 60 * 1000;
     const POLL_NORMAL_MS = 15 * 1000;
     const POLL_BUSY_MS = 5 * 1000;
+    /* When the GitHub Actions workflow drops from ~2-3 min cadence (two
+       staggered crons) back to the 5-min baseline. Keep this in sync with
+       the cutoff in .github/workflows/deploy.yml. */
+    const TOURNAMENT_BURST_END_MS = Date.UTC(2026, 4 /* May */, 18, 13, 0, 0);
     let autoReloadTimer = null;
     let fetchInFlight = false;
+
+    function inTournamentBurst() {
+      return Date.now() < TOURNAMENT_BURST_END_MS;
+    }
 
     function lastCronTickMs() {
       const now = new Date();
@@ -1341,9 +1362,11 @@
       if (!lastFetchedAtRaw) { el.innerHTML = ""; return; }
       const shortTime = formatFetchedAtShort(lastFetchedAtRaw);
       const fullTime = formatFetchedAtFull(lastFetchedAtRaw);
+      const cadenceKey = inTournamentBurst() ? "cadenceTournament" : "cadencePost";
       el.innerHTML =
         escapeHtml(t("lastUpdated")) + " <strong title=\"" + escapeHtml(fullTime) + "\">" +
-        escapeHtml(shortTime) + "</strong>";
+        escapeHtml(shortTime) + "</strong>" +
+        "<span class=\"reload-cadence\">" + escapeHtml(t(cadenceKey)) + "</span>";
     }
 
     function showError(msg) {
