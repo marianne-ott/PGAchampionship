@@ -2,8 +2,23 @@ name: Refresh leaderboard and deploy
 
 on:
   schedule:
-    # Every 5 minutes. GitHub free runners often slip to 10–15 min during peak.
-    - cron: "*/5 * * * *"
+    # ─── Always-on baseline ────────────────────────────────────────────
+    # This cron always runs (even after the cutoff below). 5-minute floor
+    # imposed by GitHub Actions.
+    - cron: "0-59/5 * * * *"
+    # ─── TOURNAMENT BURST ──────────────────────────────────────────────
+    # Four extra crons offset by 1, 2, 3, 4 minutes so the combined effect
+    # is ~1 update per minute during the 2026 PGA Championship. The "Cron
+    # gate" step below skips real work for these after the cutoff
+    # (Monday 18 May 2026 at 09:00 ET = 13:00 UTC), so after the final
+    # round we automatically drop back to the 5-minute baseline.
+    # If you want to also stop the brief no-op runner spin-ups after the
+    # cutoff, just comment out these four lines (the baseline cron above
+    # is enough on its own).
+    - cron: "1-59/5 * * * *"
+    - cron: "2-59/5 * * * *"
+    - cron: "3-59/5 * * * *"
+    - cron: "4-59/5 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -25,28 +40,60 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Cron gate (skip tournament-burst crons after cutoff)
+        id: gate
+        # The baseline cron, manual workflow_dispatch and push triggers
+        # always run. The four offset crons only run before the cutoff;
+        # after the cutoff they short-circuit to a tiny no-op so we don't
+        # waste CDN bandwidth or Pages deploys on data that isn't really
+        # changing anymore.
+        run: |
+          set -euo pipefail
+          BASE_CRON='0-59/5 * * * *'
+          # PGA Championship 2026 ends Sunday 17 May. Drop back to 5-min
+          # cadence Monday 18 May at 09:00 ET (= 13:00 UTC, EDT in May).
+          CUTOFF_EPOCH=$(date -u -d '2026-05-18 13:00:00 UTC' +%s)
+          NOW_EPOCH=$(date -u +%s)
+          EVT='${{ github.event_name }}'
+          SCHED='${{ github.event.schedule }}'
+          if [ "$EVT" != 'schedule' ] \
+              || [ "$SCHED" = "$BASE_CRON" ] \
+              || [ "$NOW_EPOCH" -lt "$CUTOFF_EPOCH" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Running build (event=$EVT cron='$SCHED')"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Past 2026-05-18 13:00Z cutoff — skipping tournament-burst cron '$SCHED'"
+          fi
+
       - name: Checkout
+        if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Python
+        if: steps.gate.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Build static snapshot (docs/data.json)
+        if: steps.gate.outputs.run == 'true'
         # If pgatour.com is briefly unreachable we keep the previous committed
         # docs/data.json so the site never goes blank.
         run: |
           python3 build_static.py || echo "::warning::build_static.py failed; falling back to existing docs/data.json"
 
       - name: Configure Pages
+        if: steps.gate.outputs.run == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
+        if: steps.gate.outputs.run == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
       - name: Deploy to GitHub Pages
+        if: steps.gate.outputs.run == 'true'
         id: deployment
         uses: actions/deploy-pages@v4

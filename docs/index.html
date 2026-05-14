@@ -1286,23 +1286,23 @@
     }
     initBettorDialog();
 
-    /* The data file is rebuilt by a GitHub Actions cron that fires every
-       five minutes (UTC). We don't trigger the rebuild from the browser —
-       we just fetch the static JSON whenever it might have changed.
-       Whenever we're waiting for a new build (i.e. our most recently
-       fetched data is from before the most recent cron tick) we poll a
-       little more frequently so the new file lands fast; otherwise we
-       poll on a relaxed schedule. */
-    const FIVE_MIN_MS = 5 * 60 * 1000;
-    const POLL_NORMAL_MS = 30 * 1000;
-    const POLL_BUSY_MS = 10 * 1000;
+    /* The data file is rebuilt by a GitHub Actions workflow with five
+       offset cron schedules — effective cadence ~1 minute. We don't
+       trigger the rebuild from the browser; we just fetch the static
+       JSON whenever it might have changed. Whenever we're waiting for a
+       new build (i.e. our most recently fetched data is from before the
+       most recent expected cron tick) we poll a little more frequently
+       so the new file lands fast; otherwise we poll on a relaxed
+       schedule. */
+    const ONE_MIN_MS = 60 * 1000;
+    const POLL_NORMAL_MS = 15 * 1000;
+    const POLL_BUSY_MS = 5 * 1000;
     let autoReloadTimer = null;
     let fetchInFlight = false;
 
     function lastCronTickMs() {
       const now = new Date();
       const inCycleMs =
-        (now.getUTCMinutes() % 5) * 60000 +
         now.getUTCSeconds() * 1000 +
         now.getUTCMilliseconds();
       return now.getTime() - inCycleMs;
