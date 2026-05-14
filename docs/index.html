@@ -839,7 +839,9 @@
       border-radius: 4px;
       background: var(--surface);
       color: var(--text);
-      font-size: 0.9rem;
+      /* MUST stay >=16px to stop iOS Safari from auto-zooming the page
+         on input focus. Trim chrome via padding, never font-size. */
+      font-size: 16px;
       font-family: var(--body-font);
     }
     .pool-toolbar input:focus {
@@ -1016,7 +1018,7 @@
          them. Drop the floor so the input shrinks first. */
       .pool-toolbar input,
       .pool-toolbar .bettor-search { min-width: 0; }
-      .pool-toolbar input { padding: 0.4rem 0.55rem; font-size: 0.85rem; }
+      .pool-toolbar input { padding: 0.4rem 0.55rem; }
       .pool-toolbar button.secondary { padding: 0.35rem 0.65rem; font-size: 0.8rem; }
       /* Holistic phone-portrait shrink so the section reads as a
          compact dashboard, not a tablet layout cropped down. ~12%
