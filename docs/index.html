@@ -949,6 +949,23 @@
       #grid th, #grid td { padding: 0.34rem 0.45rem; }
       #grid td:nth-child(2) { min-width: 7.5rem; }
     }
+    /* Player search toolbar — aligned with the leaderboard wrap padding
+       so the input lines up with the table edge. */
+    #panelPga .player-search-toolbar {
+      padding: 0.5rem 1rem 0;
+      margin: 0 0 0.7rem;
+    }
+    @media (max-width: 600px) {
+      #panelPga .player-search-toolbar { padding: 0.5rem 0.5rem 0; }
+    }
+    /* Highlight the row of the player the user looked up. Different
+       variable from the bettor row so it stands out against the dense
+       leaderboard zebra striping. */
+    #grid tbody tr.me td {
+      background: var(--me-row) !important;
+      font-weight: 700;
+      color: var(--masters-dark);
+    }
     .tabs-wrap { margin: 0 1rem 2rem; }
     .tabs {
       display: flex;
@@ -1146,6 +1163,18 @@
     </div>
     <div class="tab-panel" id="panelPga" role="tabpanel" aria-labelledby="tabPga" hidden>
       <p class="meta" id="meta" data-i18n="notLoadedYet">Not loaded yet.</p>
+      <div class="pool-toolbar player-search-toolbar">
+        <div class="bettor-search">
+          <input id="playerSearch" type="text" autocomplete="off"
+                 data-i18n-placeholder="lookUpPlayerPlaceholder"
+                 data-i18n-aria="lookUpPlayerLabel"
+                 placeholder="look up player" aria-label="Look up player"
+                 aria-autocomplete="list" aria-controls="playerSuggest"
+                 aria-expanded="false" role="combobox" />
+          <ul id="playerSuggest" class="bettor-suggest" role="listbox" hidden></ul>
+        </div>
+        <button type="button" id="playerClear" class="secondary" data-i18n="btnClear">Clear</button>
+      </div>
       <div class="wrap">
         <table id="grid" aria-label="PGA tournament leaderboard">
           <thead><tr id="head"></tr></thead>
@@ -1168,9 +1197,14 @@
     const $ = (id) => document.getElementById(id);
     const LS_BETTOR = "mastersPoolMyBettor";
     const LS_LANG = "pgaLang";
+    const LS_PLAYER = "pgaWatchedPlayer";
     let lastPoolStandings = null;
     let lastBundle = null;
     let loadSeq = 0;
+    /* Updated by renderLeaderboard on every refresh — backs the player
+       search dropdown without re-binding listeners every 2-3 minutes. */
+    let leaderboardPlayers = [];
+    let currentPlayerSelection = null;
 
     /* ----- i18n -------------------------------------------------------- */
     const STRINGS = {
@@ -1189,6 +1223,8 @@
         poolError: "Pool-feil",
         lookUpNamePlaceholder: "søk etter navn",
         lookUpNameLabel: "Søk etter navn",
+        lookUpPlayerPlaceholder: "søk etter spiller",
+        lookUpPlayerLabel: "Søk etter spiller",
         competitionRules: "Konkurranseregler",
         fullRulesAria: "Alle konkurranseregler",
         fullRulesTitle: "Alle konkurranseregler",
@@ -1247,6 +1283,8 @@
         poolError: "Pool error",
         lookUpNamePlaceholder: "look up name",
         lookUpNameLabel: "Look up name",
+        lookUpPlayerPlaceholder: "look up player",
+        lookUpPlayerLabel: "Look up player",
         competitionRules: "Competition Rules",
         fullRulesAria: "Full competition rules",
         fullRulesTitle: "Full competition rules",
@@ -1628,6 +1666,154 @@
           tr.appendChild(td);
         });
         bd.appendChild(tr);
+      });
+      refreshPlayerSearchIndex(data);
+    }
+
+    /* Rebuild the player search index from the freshly-rendered table.
+       Called on every leaderboard render so the dropdown reflects the
+       latest standings, and re-applies the saved highlight if the
+       remembered player is still in the field. */
+    function refreshPlayerSearchIndex(data) {
+      const cols = (data && data.columns) || [];
+      let pIdx = cols.findIndex((c) => /player|spiller/i.test(String(c)));
+      if (pIdx < 0) pIdx = 1;
+      const tbody = $("gridBody");
+      leaderboardPlayers = [];
+      if (!tbody) return;
+      Array.from(tbody.querySelectorAll("tr")).forEach((tr) => {
+        const tds = tr.querySelectorAll("td");
+        const name = tds[pIdx] ? tds[pIdx].textContent.trim() : "";
+        if (name) leaderboardPlayers.push({ name: name, row: tr });
+      });
+      let saved = currentPlayerSelection;
+      if (!saved) {
+        try { saved = localStorage.getItem(LS_PLAYER); } catch (e) { /* ignore */ }
+        const inp = $("playerSearch");
+        if (inp && saved && !inp.value) inp.value = saved;
+      }
+      if (saved) applyPlayerHighlight(saved, { allowScroll: false });
+    }
+
+    function applyPlayerHighlight(name, opts) {
+      const allowScroll = !!(opts && opts.allowScroll);
+      const tbody = $("gridBody");
+      if (!tbody) return;
+      tbody.querySelectorAll("tr.me").forEach((tr) => tr.classList.remove("me"));
+      if (!name) { currentPlayerSelection = null; return; }
+      const found = leaderboardPlayers.find((p) => p.name === name);
+      currentPlayerSelection = name;
+      if (!found) return;
+      found.row.classList.add("me");
+      if (allowScroll) found.row.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+
+    function initPlayerSearch() {
+      const inp = $("playerSearch");
+      const sug = $("playerSuggest");
+      const btnClr = $("playerClear");
+      if (!inp || !sug || !btnClr) return;
+      const MAX = 8;
+      let activeIdx = -1;
+
+      function matches(q) {
+        const ql = (q || "").trim().toLowerCase();
+        if (!ql) return leaderboardPlayers.slice(0, MAX);
+        const prefix = leaderboardPlayers.filter((p) => p.name.toLowerCase().startsWith(ql));
+        const seen = new Set(prefix.map((p) => p.name));
+        const sub = leaderboardPlayers.filter((p) => !seen.has(p.name) && p.name.toLowerCase().includes(ql));
+        return prefix.concat(sub).slice(0, MAX);
+      }
+      function setActive() {
+        const items = sug.querySelectorAll("li[role='option']");
+        items.forEach((li, i) => {
+          li.classList.toggle("active", i === activeIdx);
+          if (i === activeIdx) li.scrollIntoView({ block: "nearest" });
+        });
+      }
+      function render() {
+        const m = matches(inp.value);
+        sug.innerHTML = "";
+        if (!m.length) {
+          const li = document.createElement("li");
+          li.className = "empty";
+          li.textContent = t("noMatch");
+          sug.appendChild(li);
+        } else {
+          m.forEach((p) => {
+            const li = document.createElement("li");
+            li.setAttribute("role", "option");
+            li.setAttribute("data-name", p.name);
+            li.textContent = p.name;
+            li.addEventListener("mousedown", (e) => { e.preventDefault(); commit(p); });
+            sug.appendChild(li);
+          });
+        }
+        sug.hidden = false;
+        inp.setAttribute("aria-expanded", "true");
+        activeIdx = -1;
+        setActive();
+      }
+      function hide() {
+        sug.hidden = true;
+        inp.setAttribute("aria-expanded", "false");
+        activeIdx = -1;
+      }
+      function move(d) {
+        const items = sug.querySelectorAll("li[role='option']");
+        if (!items.length) return;
+        activeIdx = activeIdx === -1
+          ? (d > 0 ? 0 : items.length - 1)
+          : (activeIdx + d + items.length) % items.length;
+        setActive();
+      }
+      function commit(p) {
+        if (!p) return;
+        inp.value = p.name;
+        hide();
+        try { localStorage.setItem(LS_PLAYER, p.name); } catch (e) { /* ignore */ }
+        applyPlayerHighlight(p.name, { allowScroll: true });
+        inp.blur();
+      }
+
+      inp.addEventListener("focus", () => render());
+      inp.addEventListener("input", () => {
+        if (currentPlayerSelection && inp.value.trim() !== currentPlayerSelection) {
+          applyPlayerHighlight(null);
+        }
+        render();
+      });
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown") { e.preventDefault(); if (sug.hidden) render(); move(1); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); if (sug.hidden) render(); move(-1); }
+        else if (e.key === "Enter") {
+          e.preventDefault();
+          const items = Array.from(sug.querySelectorAll("li[role='option']"));
+          let pickName = null;
+          if (activeIdx >= 0 && activeIdx < items.length) pickName = items[activeIdx].getAttribute("data-name");
+          else if (items.length === 1) pickName = items[0].getAttribute("data-name");
+          const pick = pickName ? leaderboardPlayers.find((p) => p.name === pickName) : null;
+          if (pick) commit(pick);
+          else { hide(); inp.blur(); }
+        } else if (e.key === "Escape") {
+          hide();
+        }
+      });
+      inp.addEventListener("blur", () => {
+        setTimeout(() => {
+          if (sug.hidden) return;
+          hide();
+          const ql = inp.value.trim().toLowerCase();
+          if (!ql) return;
+          const exact = leaderboardPlayers.find((p) => p.name.toLowerCase() === ql);
+          if (exact && exact.name !== currentPlayerSelection) commit(exact);
+        }, 150);
+      });
+      btnClr.addEventListener("click", () => {
+        try { localStorage.removeItem(LS_PLAYER); } catch (e) { /* ignore */ }
+        inp.value = "";
+        hide();
+        applyPlayerHighlight(null);
       });
     }
 
@@ -2107,6 +2293,7 @@
       tabPga.addEventListener("click", () => go("pga"));
     }
     initTabs();
+    initPlayerSearch();
 
     document.documentElement.lang = currentLang === "no" ? "nb" : "en";
     applyStaticI18n();
