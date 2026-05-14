@@ -379,13 +379,38 @@
         border-radius: 0;
         overflow: visible;
       }
-      .pool table thead { display: none; }
+      /* Header row mirrors the flex-row layout of body rows so the
+         column labels line up with NAME / RANK / TOTAL underneath. */
+      .pool table thead { display: block; }
+      .pool table thead tr {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.42rem 0.85rem;
+        border-bottom: 2px solid var(--pga-gold);
+        background: linear-gradient(180deg, var(--masters-hover) 0%, var(--masters) 60%, var(--masters-dark) 100%);
+        color: #fff;
+      }
+      .pool table thead th {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+      }
+      .pool table thead th:nth-child(1) { flex: 1 1 auto; min-width: 0; }
+      .pool table thead th:nth-child(2) { flex: 0 0 auto; min-width: 1.25rem; text-align: center; }
+      .pool table thead th:nth-child(3) { flex: 0 0 auto; min-width: 1.85rem; text-align: center; }
+      .pool table thead th:nth-child(4) { flex: 0 0 auto; min-width: 2.4rem; text-align: right; }
+      .pool table thead th:nth-child(5) { display: none; }
       .pool table tbody { display: block; }
       .pool table tbody tr {
         display: flex;
         align-items: center;
         gap: 0.55rem;
-        padding: 0.45rem 0.65rem;
+        padding: 0.5rem 0.85rem;
         border-bottom: 1px solid var(--border);
       }
       .pool table tbody tr:last-child { border-bottom: 0; }
