@@ -1295,11 +1295,11 @@
     /* The data file is rebuilt by a GitHub Actions cron that fires every
        five minutes (UTC). We don't trigger the rebuild from the browser —
        we just fetch the static JSON whenever it might have changed.
-       During the build window (the ~90 s after a cron tick) we poll a
+       Whenever we're waiting for a new build (i.e. our most recently
+       fetched data is from before the most recent cron tick) we poll a
        little more frequently so the new file lands fast; otherwise we
        poll on a relaxed schedule. */
     const FIVE_MIN_MS = 5 * 60 * 1000;
-    const BUILD_WINDOW_MS = 90 * 1000;
     const POLL_NORMAL_MS = 30 * 1000;
     const POLL_BUSY_MS = 10 * 1000;
     let autoReloadTimer = null;
@@ -1314,8 +1314,17 @@
       return now.getTime() - inCycleMs;
     }
     function nextCronTickMs() { return lastCronTickMs() + FIVE_MIN_MS; }
-    function timeSinceLastTickMs() { return Date.now() - lastCronTickMs(); }
-    function inBuildWindow() { return timeSinceLastTickMs() < BUILD_WINDOW_MS; }
+
+    /* True if the most recent cron tick has already fired but we don't yet
+       have data from after it — i.e. the new file is still building or
+       hasn't propagated to the CDN. As soon as a new fetchedAt arrives
+       this flips to false and the UI switches back to the countdown. */
+    function isAwaitingNewBuild() {
+      if (!lastFetchedAtRaw) return false;
+      const dataTimeMs = new Date(lastFetchedAtRaw).getTime();
+      if (isNaN(dataTimeMs)) return false;
+      return dataTimeMs < lastCronTickMs();
+    }
 
     function formatMmSs(ms) {
       const total = Math.max(0, Math.ceil(ms / 1000));
@@ -1333,7 +1342,7 @@
 
     function scheduleNextAutoReload() {
       cancelAutoReload();
-      const delay = inBuildWindow() ? POLL_BUSY_MS : POLL_NORMAL_MS;
+      const delay = isAwaitingNewBuild() ? POLL_BUSY_MS : POLL_NORMAL_MS;
       autoReloadTimer = setTimeout(() => {
         autoReloadTimer = null;
         load();
@@ -1355,7 +1364,7 @@
       let statusBit;
       if (fetchInFlight) {
         statusBit = "<em>" + escapeHtml(t("checkingForNew")) + "</em>";
-      } else if (inBuildWindow()) {
+      } else if (isAwaitingNewBuild()) {
         statusBit = "<em>" + escapeHtml(t("buildingNew")) + "</em>";
       } else {
         const ms = nextCronTickMs() - Date.now();
