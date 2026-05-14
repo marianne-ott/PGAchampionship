@@ -724,19 +724,11 @@
       .pick-chip { font-size: 0.7rem; }
     }
     @media (max-width: 900px) and (orientation: portrait) {
-      /* You-card pick chips on phone portrait: the 7-across grid
-         truncates names to "Sc…", "Lo…" etc. Switch to a 2-column
-         grid so each chip has room for the full last name, and drop
-         the position number — it's still available in the bettor
-         modal and as the chip's long-press tooltip. */
-      .you-card .pick-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.4rem;
-      }
-      .you-card .pick-chip { font-size: 0.85rem; }
-      .you-card .pick-chip .chip-pts,
-      .you-card .pick-chip .chip-pts-sep { display: none; }
-      .you-card .pick-slot { min-height: 2.4rem; padding: 0.32rem 0.5rem; }
+      /* You-card on phone portrait: the chip grid is too cramped to be
+         useful. Drop the picks entirely — the user can tap their own
+         name in the list to see the full pick breakdown in the modal.
+         Rank + total in the card is enough at-a-glance info. */
+      .you-card .you-picks { display: none; }
     }
     .pool .sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; }
     .pool-top-row {
