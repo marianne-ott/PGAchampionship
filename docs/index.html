@@ -956,10 +956,21 @@
       #grid td:nth-child(2) { min-width: 7.5rem; }
     }
     /* Player search toolbar — aligned with the leaderboard wrap padding
-       so the input lines up with the table edge. */
+       so the input lines up with the table edge. Keep the input + Clear
+       button on one line at all viewport widths: the input shrinks to
+       fit, the button hugs its natural width on the right. */
     #panelPga .player-search-toolbar {
       padding: 0.5rem 1rem 0;
       margin: 0 0 0.7rem;
+      flex-wrap: nowrap;
+    }
+    #panelPga .player-search-toolbar .bettor-search {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    #panelPga .player-search-toolbar > button.secondary {
+      flex: 0 0 auto;
+      white-space: nowrap;
     }
     @media (max-width: 600px) {
       #panelPga .player-search-toolbar { padding: 0.5rem 0.5rem 0; }
