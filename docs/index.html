@@ -1067,13 +1067,18 @@
           '</strong> picks per player. Your <strong>total</strong> is the sum of points from the <strong>' +
           String(st.counting_picks) +
           '</strong> picks that count. <strong>Lowest total wins.</strong></p>' +
-          '<p>Each pick earns points equal to that golfer&rsquo;s <strong>listed finishing position</strong> (a worse finish means a higher number). A <strong>missed cut</strong> &mdash; or a player who hasn&rsquo;t teed off yet &mdash; is worth <strong>' +
+          '<p>Each pick earns points equal to that golfer&rsquo;s <strong>listed leaderboard position</strong> (a worse finish means a higher number). The leaderboard carries the latest standings between rounds, so a pick simply shows wherever the player currently sits.</p>' +
+          '<p>Two cases score the maximum <strong>' +
           String(st.cut_points) +
-          '</strong> points.</p>' +
+          '</strong> points:</p>' +
+          '<ul class="pool-rules-list">' +
+          '<li><strong>Missed the cut</strong> &mdash; final for the rest of the tournament.</li>' +
+          '<li><strong>Hasn&rsquo;t teed off yet</strong> &mdash; only happens before Round 1, while the leaderboard hasn&rsquo;t recorded a position. As soon as the player hits a shot, a real position appears and replaces this placeholder on the next refresh.</li>' +
+          '</ul>' +
           '<div class="pool-rules-sub">Which picks count?</div>' +
           '<p>We drop your <strong>' +
           String(nDrop) +
-          '</strong> picks with the <strong>highest</strong> point totals (your worst results). Those chips are <strong>struck through</strong> and are not added to your total.</p>';
+          '</strong> picks with the <strong>highest</strong> point totals (your worst results). When several picks tie on points, we drop the higher-numbered pots first &mdash; so your marquee early-tier picks stay protected. Dropped chips are <strong>struck through</strong> and are not added to your total.</p>';
       }
 
       function pickChipsHtml(picks) {

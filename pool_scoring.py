@@ -135,10 +135,13 @@ def compute_pool_standings(
         assert all(isinstance(x, int) for x in pts_list)
         pts_only = [int(x) for x in pts_list]
         n_drop = max(0, len(pts_only) - counting_picks)
-        # Always drop the picks with the highest point totals (worst results),
-        # regardless of how many of them missed the cut.
+        # Always drop the picks with the highest point totals (worst results).
+        # Ties are broken by *pot number* — when several picks have the same
+        # points (e.g. multiple unstarted/missed-cut picks all at cut_points),
+        # we drop the rightmost slots first (highest pot tier), protecting
+        # the marquee early-tier picks like the Pot 1 favourite.
         indexed = list(enumerate(pts_only))
-        worst = sorted(indexed, key=lambda t: t[1], reverse=True)[:n_drop]
+        worst = sorted(indexed, key=lambda t: (t[1], t[0]), reverse=True)[:n_drop]
         drop_idx = {i for i, _ in worst}
         total = sum(p for i, p in enumerate(pts_only) if i not in drop_idx)
         for i, pr in enumerate(pick_rows):
