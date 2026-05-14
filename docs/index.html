@@ -863,13 +863,18 @@
     .you-card .you-pts strong { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-left: 0.25rem; font-family: var(--display-font); }
     .you-card .you-picks { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
     .you-card .you-picks .pick-grid { margin-top: 0.35rem; }
-    /* Selected lookup row: beat leader/runner-up row backgrounds */
+    /* Selected lookup row: beat leader/runner-up row backgrounds with
+       a soft tint and underline the name. Avoids the loud gold stripe
+       on the leftmost cell that previously stole attention from the
+       actual ranking. */
     #poolSection tbody tr.me > td {
       background: var(--me-row) !important;
     }
-    /* Stripe only on first cell — inset shadow on every td looked like thick dividers */
-    #poolSection tbody tr.me > td:first-child {
-      box-shadow: inset 3px 0 0 0 var(--pga-gold);
+    #poolSection tbody tr.me td.bettor-col {
+      text-decoration: underline;
+      text-decoration-color: var(--masters);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
     }
     .wrap { overflow: auto; padding: 0 1rem 1rem; background: var(--surface); }
     table#grid {
