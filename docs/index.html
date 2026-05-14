@@ -403,10 +403,14 @@
         white-space: nowrap;
       }
       .pool td.bettor-col::after {
-        content: " \203A"; /* ›  hint that the cell is tappable for picks */
+        content: "\203A"; /* ›  hint that the cell is tappable for picks */
         color: var(--muted);
         font-weight: 400;
-        margin-left: 0.15rem;
+        margin-left: 0.3rem;
+        /* inline-block + text-decoration:none so the me-row underline
+           doesn't extend over the chevron. */
+        display: inline-block;
+        text-decoration: none;
       }
       .pool td.trophy-col {
         flex: 0 0 auto;
