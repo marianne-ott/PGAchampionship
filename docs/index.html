@@ -39,6 +39,12 @@
       -webkit-font-smoothing: antialiased;
       display: flex;
       flex-direction: column;
+      /* Belt-and-braces: any sub-pixel overflow from a long word, a
+         shadow, or a borderline-wide flex row gets clipped instead of
+         producing a 1-2 mm horizontal scroll on phones. The pga
+         leaderboard table still scrolls horizontally because it lives
+         in its own .wrap with overflow:auto. */
+      overflow-x: clip;
     }
     .page-main {
       flex: 1 0 auto;
@@ -974,6 +980,16 @@
     }
     @media (max-width: 600px) {
       #panelPga .player-search-toolbar { padding: 0.5rem 0.5rem 0; }
+      /* Reclaim chrome space on phones — every rem of side padding
+         was eating into the table on narrow viewports. */
+      .tabs-wrap { margin: 0 0.5rem 1.5rem; }
+      .tab-panel { padding: 0.85rem 0.6rem 1.1rem; }
+      .tab-btn { padding: 0.55rem 1rem; font-size: 0.95rem; }
+      /* The bettor + player search inputs had a 10rem floor; on a
+         360-px phone that left no room for the Clear button beside
+         them. Drop the floor so the input shrinks first. */
+      .pool-toolbar input,
+      .pool-toolbar .bettor-search { min-width: 0; }
     }
     /* Highlight the row of the player the user looked up. Different
        variable from the bettor row so it stands out against the dense
