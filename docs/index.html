@@ -1004,14 +1004,39 @@
       #panelPga .player-search-toolbar { padding: 0.5rem 0.5rem 0; }
       /* Reclaim chrome space on phones — every rem of side padding
          was eating into the table on narrow viewports. */
-      .tabs-wrap { margin: 0 0.5rem 1.5rem; }
-      .tab-panel { padding: 0.85rem 0.6rem 1.1rem; }
-      .tab-btn { padding: 0.55rem 1rem; font-size: 0.95rem; }
+      .tabs-wrap { margin: 0 0.4rem 1.4rem; }
+      .tab-panel { padding: 0.7rem 0.45rem 0.95rem; }
+      .tab-btn { padding: 0.45rem 0.85rem; font-size: 0.88rem; letter-spacing: 0.05em; }
       /* The bettor + player search inputs had a 10rem floor; on a
          360-px phone that left no room for the Clear button beside
          them. Drop the floor so the input shrinks first. */
       .pool-toolbar input,
       .pool-toolbar .bettor-search { min-width: 0; }
+      .pool-toolbar input { padding: 0.4rem 0.55rem; font-size: 0.85rem; }
+      .pool-toolbar button.secondary { padding: 0.35rem 0.65rem; font-size: 0.8rem; }
+      /* Holistic phone-portrait shrink so the section reads as a
+         compact dashboard, not a tablet layout cropped down. ~12%
+         smaller across the board. */
+      section.pool .our-head { font-size: 0.92rem; letter-spacing: 0.05em; gap: 0.3rem 0.4rem; }
+      .pool-rules-trigger { width: 1.2rem; height: 1.2rem; font-size: 0.65rem; }
+      .you-card { padding: 0.7rem 0.9rem; margin-bottom: 0.8rem; }
+      .you-card h3 { font-size: 1.05rem; margin-bottom: 0.25rem; }
+      .you-card .you-stats { gap: 0.5rem 0.85rem; margin-bottom: 0.35rem; }
+      .you-card .you-rank { font-size: 0.72rem; }
+      .you-card .you-rank strong { font-size: 1.35rem; margin-left: 0.3rem; }
+      .you-card .you-pts { font-size: 0.75rem; }
+      .you-card .you-pts strong { font-size: 0.95rem; }
+      /* Pool table: keep numbers readable but trim row chrome. */
+      .pool table tbody tr { padding: 0.4rem 0.7rem; gap: 0.45rem; }
+      .pool table thead th { font-size: 0.66rem; }
+      .pool td.rank-col { font-size: 0.95rem; }
+      .pool td.rank-col span.rank-pill { font-size: 0.85rem; min-width: 1.65rem; padding: 0.18rem 0.4rem; }
+      .pool td.poolscore { font-size: 0.88rem; min-width: 2.1rem; }
+      .pool td.trophy-col .rank-trophy--gold { font-size: 0.95rem; }
+      .pool td.trophy-col .rank-trophy--silver { font-size: 0.9rem; }
+      /* Rotate hint card a touch smaller too. */
+      .pool-rotate-hint { padding: 0.4rem 0.65rem; font-size: 0.72rem; gap: 0.45rem; }
+      .pool-rotate-hint__icon { width: 1.15rem; height: 1.15rem; }
     }
     /* Highlight the row of the player the user looked up. Different
        variable from the bettor row so it stands out against the dense
