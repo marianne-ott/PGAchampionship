@@ -1199,15 +1199,10 @@
           const nDrop = st.picks_per_friend - st.counting_picks;
           return (
             '<div class="pool-rules-sub">Poenggivning</div>' +
-            '<p>Du har <strong>' + st.picks_per_friend + '</strong> valg per spiller. Din <strong>total</strong> er summen av poengene fra de <strong>' + st.counting_picks + '</strong> valgene som teller. <strong>Lavest total vinner.</strong></p>' +
-            '<p>Hvert valg gir poeng tilsvarende golferens <strong>plassering på leaderboardet</strong> (dårligere plassering = høyere tall). Leaderboardet beholder siste plassering mellom rundene, så et valg viser bare hvor spilleren ligger akkurat nå.</p>' +
-            '<p>To tilfeller gir maks <strong>' + st.cut_points + '</strong> poeng:</p>' +
-            '<ul class="pool-rules-list">' +
-            '<li><strong>Missed cut</strong> &mdash; endelig for resten av turneringen.</li>' +
-            '<li><strong>Har ikke teet av enda</strong> &mdash; skjer kun før Runde 1, mens leaderboardet ikke har registrert noen plassering. Så snart spilleren slår sitt første slag dukker en reell plassering opp og erstatter denne plassholderen ved neste oppdatering.</li>' +
-            '</ul>' +
+            '<p>Hvert valg gir poeng = spillerens <strong>plassering</strong> på leaderboardet. Totalen din er summen av de <strong>' + st.counting_picks + '</strong> beste av <strong>' + st.picks_per_friend + '</strong>. <strong>Lavest total vinner.</strong></p>' +
+            '<p>Maks <strong>' + st.cut_points + '</strong> poeng gis hvis spilleren <strong>missed cut</strong>, eller ikke har fullført sitt første hull i Runde 1.</p>' +
             '<div class="pool-rules-sub">Hvilke valg teller?</div>' +
-            '<p>Vi forkaster dine <strong>' + nDrop + '</strong> valg med <strong>høyest</strong> totalpoeng (dine dårligste resultater). Når flere valg har samme poeng, forkaster vi de høyeste pott-numrene først &mdash; så toppvalgene dine forblir intakte. Forkastede valg er <strong>overstrøket</strong> og legges ikke til totalen.</p>'
+            '<p>Vi forkaster dine <strong>' + nDrop + '</strong> dårligste valg (høyest poeng). Ved likhet forkastes høyeste pott-nummer først, så topp-valgene er trygge. Forkastede valg er <strong>overstrøket</strong>.</p>'
           );
         },
       },
@@ -1262,15 +1257,10 @@
           const nDrop = st.picks_per_friend - st.counting_picks;
           return (
             '<div class="pool-rules-sub">Scoring</div>' +
-            '<p>You have <strong>' + st.picks_per_friend + '</strong> picks per player. Your <strong>total</strong> is the sum of points from the <strong>' + st.counting_picks + '</strong> picks that count. <strong>Lowest total wins.</strong></p>' +
-            '<p>Each pick earns points equal to that golfer&rsquo;s <strong>listed leaderboard position</strong> (a worse finish means a higher number). The leaderboard carries the latest standings between rounds, so a pick simply shows wherever the player currently sits.</p>' +
-            '<p>Two cases score the maximum <strong>' + st.cut_points + '</strong> points:</p>' +
-            '<ul class="pool-rules-list">' +
-            '<li><strong>Missed the cut</strong> &mdash; final for the rest of the tournament.</li>' +
-            '<li><strong>Hasn&rsquo;t teed off yet</strong> &mdash; only happens before Round 1, while the leaderboard hasn&rsquo;t recorded a position. As soon as the player hits a shot, a real position appears and replaces this placeholder on the next refresh.</li>' +
-            '</ul>' +
+            '<p>Each pick scores the player\u2019s current <strong>leaderboard position</strong>. Your total is the sum of your best <strong>' + st.counting_picks + '</strong> of <strong>' + st.picks_per_friend + '</strong>. <strong>Lowest total wins.</strong></p>' +
+            '<p>A player gets the max <strong>' + st.cut_points + '</strong> points if they <strong>miss the cut</strong>, or before they\u2019ve finished their first hole in Round 1.</p>' +
             '<div class="pool-rules-sub">Which picks count?</div>' +
-            '<p>We drop your <strong>' + nDrop + '</strong> picks with the <strong>highest</strong> point totals (your worst results). When several picks tie on points, we drop the higher-numbered pots first &mdash; so your marquee early-tier picks stay protected. Dropped chips are <strong>struck through</strong> and are not added to your total.</p>'
+            '<p>We drop your <strong>' + nDrop + '</strong> worst picks (highest points). When picks tie, we drop the higher-numbered pots first, so your top-pot picks stay protected. Dropped picks are <strong>struck through</strong>.</p>'
           );
         },
       },
