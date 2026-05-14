@@ -915,6 +915,15 @@
     #grid tbody tr:nth-child(even) { background: var(--row-alt); }
     #grid tbody tr:hover td { background: var(--me-row); }
     #grid td:nth-child(2) { white-space: normal; min-width: 10rem; }
+    /* Phones: tighten the leaderboard so POS + PLAYER + TO PAR all fit
+       without horizontal scroll. Long player names just wrap to two
+       lines instead of pushing the totals column off-screen. */
+    @media (max-width: 600px) {
+      .wrap { padding: 0 0.5rem 1rem; }
+      table#grid { font-size: 0.78rem; }
+      #grid th, #grid td { padding: 0.34rem 0.45rem; }
+      #grid td:nth-child(2) { min-width: 7.5rem; }
+    }
     .tabs-wrap { margin: 0 1rem 2rem; }
     .tabs {
       display: flex;
