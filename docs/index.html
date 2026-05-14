@@ -97,8 +97,32 @@
       letter-spacing: 0;
     }
     @media (max-width: 600px) {
-      .reload-countdown { font-size: 0.78rem; }
+      .reload-countdown { font-size: 0.78rem; text-align: left; }
       .reload-cadence { font-size: 0.66rem; }
+      /* On phones we stack the title on its own line and put the
+         timestamp + language toggle on a second line. Otherwise the
+         h1 hogs the row and the toolbar gets squeezed into a tiny
+         vertical column on the right (very visible on iPhone 17). */
+      header {
+        padding: 0.9rem 1rem 1rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.55rem;
+      }
+      h1 {
+        font-size: 1.45rem;
+        letter-spacing: 0.05em;
+        text-align: left;
+      }
+      .toolbar {
+        width: 100%;
+        flex: none;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .reload-countdown { flex: 1 1 auto; min-width: 0; }
     }
     .lang-toggle {
       display: inline-flex;
@@ -337,19 +361,104 @@
     .pool td.bettor-col:hover { color: var(--masters); text-decoration: underline; }
     .pool td.bettor-col:focus-visible { outline: 2px solid var(--masters); outline-offset: -2px; }
     @media (max-width: 900px) and (orientation: portrait) {
-      /* On phones in PORTRAIT we hide the picks column — tap a name to see picks
-         in the modal — and let the name column take the freed-up space.
-         In landscape we have enough room to keep showing the chips. */
-      .pool col.col-picks { display: none; }
-      .pool thead th:nth-child(5) { display: none; }
-      .pool td.picks-cell { display: none; }
-      .pool col.col-name { width: auto; }
+      /* Phone portrait: switch from <table> to a flex-row layout per
+         row. With table-layout:fixed and one auto column the slack
+         always falls on the (long) name column, leaving a wide gap
+         between the name and the rank pill. As a flex row we can pin
+         trophy/rank/score next to each other on the right and let the
+         name column flex naturally on the left. */
+      .pool col.col-picks,
+      .pool col.col-name,
+      .pool col.col-trophy,
+      .pool col.col-rank,
+      .pool col.col-score { width: auto; }
+      .pool table {
+        display: block;
+        width: 100%;
+        border: none;
+        border-radius: 0;
+        overflow: visible;
+      }
+      .pool table thead { display: none; }
+      .pool table tbody { display: block; }
+      .pool table tbody tr {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.45rem 0.65rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .pool table tbody tr:last-child { border-bottom: 0; }
+      .pool table td {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: transparent;
+      }
+      .pool td.bettor-col {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .pool td.bettor-col::after {
         content: " \203A"; /* ›  hint that the cell is tappable for picks */
         color: var(--muted);
         font-weight: 400;
         margin-left: 0.15rem;
       }
+      .pool td.trophy-col {
+        flex: 0 0 auto;
+        width: auto;
+        padding: 0;
+        min-width: 1.25rem;
+        text-align: center;
+      }
+      .pool td.trophy-col .rank-trophy--gold { font-size: 1.05rem; }
+      .pool td.trophy-col .rank-trophy--silver { font-size: 1rem; }
+      .pool td.rank-col {
+        flex: 0 0 auto;
+        font-size: 1.05rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pool td.rank-col span.rank-pill {
+        min-width: 1.85rem;
+        padding: 0.2rem 0.45rem;
+        font-size: 0.95rem;
+      }
+      .pool td.rank-col.rank-col--empty {
+        font-size: 0.95rem;
+        min-width: 1.85rem;
+        text-align: center;
+      }
+      .pool td.poolscore {
+        flex: 0 0 auto;
+        min-width: 2.4rem;
+        text-align: right;
+        font-size: 0.95rem;
+      }
+      .pool td.picks-cell { display: none; }
+
+      /* Row backgrounds — in flex layout the per-cell backgrounds set
+         elsewhere only colour the content area. Move them up to the
+         row so the whole bar is highlighted, not just the cells. */
+      .pool table tbody tr:nth-child(odd)  { background: var(--surface); }
+      .pool table tbody tr:nth-child(even) { background: var(--row-alt); }
+      .pool table tr.leader,
+      .pool table tr.leader td   { background: transparent !important; color: var(--masters-dark); }
+      .pool table tr.leader      { background: var(--leader-row) !important; }
+      .pool table tr.runner-up,
+      .pool table tr.runner-up td{ background: transparent !important; color: var(--text); }
+      .pool table tr.runner-up   { background: #eaf0fa !important; }
+      .pool table tr.leader td.rank-col { font-size: 1.18rem; }
+      /* The "me" highlight is normally applied to each <td> so the
+         table cells colour solidly; in flex layout that leaves gaps
+         between cells. Move it to the row instead. */
+      #poolSection tbody tr.me > td { background: transparent !important; }
+      #poolSection tbody tr.me { background: var(--me-row) !important; }
     }
     @media (max-width: 900px) and (orientation: landscape) {
       /* Phone in LANDSCAPE: chips are tight, so reclaim space from the
