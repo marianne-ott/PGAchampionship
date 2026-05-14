@@ -672,6 +672,64 @@
       box-shadow: none;
     }
     .pool-toolbar button.secondary:hover { background: var(--me-row); }
+    /* Custom suggestion dropdown — used instead of native <datalist>
+       because Safari on iOS only shows the keyboard-bar suggestion
+       and the keyboard hides the row below as the user types. */
+    .pool-toolbar .bettor-search {
+      position: relative;
+      flex: 1 1 14rem;
+      min-width: 10rem;
+      max-width: min(28rem, 100%);
+    }
+    .pool-toolbar .bettor-search input {
+      width: 100%;
+      box-sizing: border-box;
+      flex: none;
+      min-width: 0;
+      max-width: none;
+    }
+    .bettor-suggest {
+      list-style: none;
+      margin: 0;
+      padding: 0.25rem 0;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      box-shadow: 0 12px 28px rgba(0, 35, 75, 0.18);
+      max-height: 16rem;
+      overflow-y: auto;
+      z-index: 50;
+      -webkit-overflow-scrolling: touch;
+    }
+    .bettor-suggest li {
+      padding: 0.65rem 0.9rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .bettor-suggest li.active,
+    .bettor-suggest li:hover {
+      background: rgba(0, 35, 75, 0.07);
+      color: var(--masters);
+      font-weight: 600;
+    }
+    .bettor-suggest li.empty,
+    .bettor-suggest li.empty:hover {
+      background: transparent;
+      color: var(--muted);
+      cursor: default;
+      font-style: italic;
+      font-weight: 400;
+    }
+    @media (max-width: 600px) {
+      .bettor-suggest { max-height: 50vh; font-size: 1rem; }
+      .bettor-suggest li { padding: 0.8rem 0.95rem; }
+    }
     .you-card {
       margin-bottom: 1rem;
       padding: 0.9rem 1.15rem;
@@ -1470,27 +1528,31 @@
 
       const toolbar = document.createElement("div");
       toolbar.className = "pool-toolbar";
+      const searchWrap = document.createElement("div");
+      searchWrap.className = "bettor-search";
       const inp = document.createElement("input");
       inp.type = "text";
       inp.id = "meBettor";
-      inp.setAttribute("list", "meBettorList");
       inp.placeholder = t("lookUpNamePlaceholder");
       inp.setAttribute("aria-label", t("lookUpNameLabel"));
       inp.autocomplete = "off";
-      const dl = document.createElement("datalist");
-      dl.id = "meBettorList";
-      (st.friends || []).forEach((fr) => {
-        const o = document.createElement("option");
-        o.value = fr.name;
-        dl.appendChild(o);
-      });
+      inp.setAttribute("aria-autocomplete", "list");
+      inp.setAttribute("aria-controls", "meBettorSuggest");
+      inp.setAttribute("aria-expanded", "false");
+      inp.setAttribute("role", "combobox");
+      const sug = document.createElement("ul");
+      sug.id = "meBettorSuggest";
+      sug.className = "bettor-suggest";
+      sug.setAttribute("role", "listbox");
+      sug.hidden = true;
+      searchWrap.appendChild(inp);
+      searchWrap.appendChild(sug);
       const btnClr = document.createElement("button");
       btnClr.type = "button";
       btnClr.className = "secondary";
       btnClr.textContent = t("btnClear");
-      toolbar.appendChild(inp);
+      toolbar.appendChild(searchWrap);
       toolbar.appendChild(btnClr);
-      toolbar.appendChild(dl);
       if (toolbarSlot) toolbarSlot.appendChild(toolbar);
       else body.appendChild(toolbar);
 
@@ -1636,14 +1698,21 @@
         return null;
       }
 
-      function updateMeHighlight() {
-        const q = inp.value;
-        const fr = findFriendByQuery(q);
-        tbl.querySelectorAll("tbody tr").forEach((tr) => tr.classList.remove("me"));
+      /* Tracks the currently *committed* selection (what the row
+         highlight + youCard reflect). We don't update this on every
+         keystroke — only when the user explicitly picks a name from
+         the suggestion dropdown, presses Enter on a unique match, or
+         blurs out on an exact match. */
+      let currentSelection = null;
+
+      function applyMeSelection(fr, opts) {
+        const allowScroll = !!(opts && opts.allowScroll);
+        tbl.querySelectorAll("tbody tr.me").forEach((tr) => tr.classList.remove("me"));
         const card = $("youCard");
         if (!fr) {
           card.hidden = true;
           card.innerHTML = "";
+          currentSelection = null;
           return;
         }
         let row = null;
@@ -1652,7 +1721,7 @@
         });
         if (row) {
           row.classList.add("me");
-          row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          if (allowScroll) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
         card.hidden = false;
         let picksHtml = "";
@@ -1686,28 +1755,147 @@
             : "<span class='you-pts'>" + escapeHtml(t("total")) + " <strong>—</strong></span>") +
           "</div>" +
           "<div class='you-picks'>" + picksHtml + "</div>";
+        currentSelection = fr.name;
       }
 
-      inp.addEventListener("input", updateMeHighlight);
-      inp.addEventListener("blur", () => {
-        const fr = findFriendByQuery(inp.value);
-        if (fr) {
-          localStorage.setItem(LS_BETTOR, fr.name);
-          if (inp.value.trim() !== fr.name) {
-            inp.value = fr.name;
-            updateMeHighlight();
-          }
+      /* Custom autocomplete dropdown — replaces <datalist>, which on
+         iOS Safari doesn't render a tappable list and causes the
+         page to feel like it's jumping per keystroke. */
+      const MAX_SUGGESTIONS = 8;
+      let activeSugIdx = -1;
+
+      function suggestionMatches(q) {
+        const ql = (q || "").trim().toLowerCase();
+        const all = st.friends || [];
+        if (!ql) return all.slice(0, MAX_SUGGESTIONS);
+        /* Prefer prefix matches (matches native browser autocomplete
+           expectations); fall back to substring matches so typo'd or
+           partially-remembered names still appear. */
+        const prefix = all.filter((f) => (f.name || "").toLowerCase().startsWith(ql));
+        const seen = new Set(prefix.map((f) => f.name));
+        const substring = all.filter(
+          (f) => !seen.has(f.name) && (f.name || "").toLowerCase().includes(ql)
+        );
+        return prefix.concat(substring).slice(0, MAX_SUGGESTIONS);
+      }
+
+      function updateActiveSuggestion() {
+        const items = sug.querySelectorAll("li[role='option']");
+        items.forEach((li, i) => {
+          li.classList.toggle("active", i === activeSugIdx);
+          if (i === activeSugIdx) li.scrollIntoView({ block: "nearest" });
+        });
+      }
+
+      function renderSuggestions() {
+        const matches = suggestionMatches(inp.value);
+        sug.innerHTML = "";
+        if (!matches.length) {
+          const li = document.createElement("li");
+          li.className = "empty";
+          li.textContent = t("noMatch");
+          sug.appendChild(li);
+        } else {
+          matches.forEach((fr) => {
+            const li = document.createElement("li");
+            li.setAttribute("role", "option");
+            li.setAttribute("data-name", fr.name);
+            li.textContent = fr.name;
+            /* mousedown (not click) so it fires *before* the input's
+               blur handler hides the dropdown. */
+            li.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              commitFriend(fr);
+            });
+            sug.appendChild(li);
+          });
         }
+        sug.hidden = false;
+        inp.setAttribute("aria-expanded", "true");
+        activeSugIdx = -1;
+        updateActiveSuggestion();
+      }
+
+      function hideSuggestions() {
+        sug.hidden = true;
+        inp.setAttribute("aria-expanded", "false");
+        activeSugIdx = -1;
+      }
+
+      function moveActiveSuggestion(delta) {
+        const items = sug.querySelectorAll("li[role='option']");
+        if (!items.length) return;
+        if (activeSugIdx === -1) {
+          activeSugIdx = delta > 0 ? 0 : items.length - 1;
+        } else {
+          activeSugIdx = (activeSugIdx + delta + items.length) % items.length;
+        }
+        updateActiveSuggestion();
+      }
+
+      function commitFriend(fr) {
+        if (!fr) return;
+        inp.value = fr.name;
+        hideSuggestions();
+        try { localStorage.setItem(LS_BETTOR, fr.name); } catch (e) { /* ignore */ }
+        applyMeSelection(fr, { allowScroll: true });
+        /* Drop the on-screen keyboard out of the way after a tap. */
+        inp.blur();
+      }
+
+      inp.addEventListener("focus", () => renderSuggestions());
+      inp.addEventListener("input", () => {
+        /* Typing diverged from the committed selection — clear the
+           highlight so the page reflects what's in the input. */
+        if (currentSelection && inp.value.trim() !== currentSelection) {
+          applyMeSelection(null);
+        }
+        renderSuggestions();
+      });
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown") { e.preventDefault(); if (sug.hidden) renderSuggestions(); moveActiveSuggestion(1); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); if (sug.hidden) renderSuggestions(); moveActiveSuggestion(-1); }
+        else if (e.key === "Enter") {
+          e.preventDefault();
+          const items = Array.from(sug.querySelectorAll("li[role='option']"));
+          let pickName = null;
+          if (activeSugIdx >= 0 && activeSugIdx < items.length) {
+            pickName = items[activeSugIdx].getAttribute("data-name");
+          } else if (items.length === 1) {
+            pickName = items[0].getAttribute("data-name");
+          }
+          const pick = pickName
+            ? (st.friends || []).find((f) => f.name === pickName)
+            : findFriendByQuery(inp.value);
+          if (pick) commitFriend(pick);
+          else { hideSuggestions(); inp.blur(); }
+        }
+        else if (e.key === "Escape") { hideSuggestions(); }
+      });
+      inp.addEventListener("blur", () => {
+        /* Wait briefly so a suggestion mousedown can finish first. */
+        setTimeout(() => {
+          if (sug.hidden) return;
+          hideSuggestions();
+          /* If user typed an exact match without picking from the
+             dropdown, commit it as a convenience. */
+          const fr = findFriendByQuery(inp.value);
+          if (fr && fr.name !== currentSelection) commitFriend(fr);
+        }, 150);
       });
       btnClr.addEventListener("click", () => {
-        localStorage.removeItem(LS_BETTOR);
+        try { localStorage.removeItem(LS_BETTOR); } catch (e) { /* ignore */ }
         inp.value = "";
-        updateMeHighlight();
+        hideSuggestions();
+        applyMeSelection(null);
       });
 
       const saved = localStorage.getItem(LS_BETTOR);
-      if (saved) inp.value = saved;
-      updateMeHighlight();
+      if (saved) {
+        inp.value = saved;
+        const fr = findFriendByQuery(saved);
+        if (fr) applyMeSelection(fr, { allowScroll: true });
+      }
     }
 
     function escapeHtml(s) {
