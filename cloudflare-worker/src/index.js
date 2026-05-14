@@ -2,7 +2,7 @@
  * pga-refresh-worker
  *
  * A tiny Cloudflare Worker whose only job is to POST a workflow_dispatch
- * to GitHub every 2 minutes during the PGA Championship 2026, so the
+ * to GitHub every minute during the PGA Championship 2026, so the
  * leaderboard refreshes at a predictable cadence even when GitHub's own
  * cron scheduler decides to consolidate scheduled events into hour-long
  * bursts.
