@@ -163,7 +163,7 @@
       border-radius: 6px;
       overflow: hidden;
     }
-    .pool col.col-name { width: 10.5rem; }
+    .pool col.col-name { width: 7rem; }
     .pool col.col-trophy { width: 1.45rem; }
     .pool col.col-rank { width: 4.35rem; }
     .pool col.col-score { width: 5.5rem; }
@@ -294,6 +294,54 @@
         font-weight: 400;
         margin-left: 0.15rem;
       }
+    }
+    @media (max-width: 900px) and (orientation: landscape) {
+      /* Phone in LANDSCAPE: chips are tight, so reclaim space from the
+         fixed-width left columns and give it to the picks area. */
+      .pool col.col-name { width: 5.25rem; }
+      .pool col.col-rank { width: 3.4rem; }
+      .pool col.col-score { width: 3.9rem; }
+      .pool td.bettor-col,
+      .pool thead th:first-child { padding-right: 0.25rem; }
+      .pool td.rank-col { font-size: 1.05rem; }
+      .pool td.poolscore { font-size: 0.85rem; }
+      .pool td.rank-col span.rank-pill { min-width: 1.9rem; padding: 0.15rem 0.35rem; }
+    }
+    /* "Rotate phone" hint — only visible on small portrait viewports.
+       Tells the user that picks live one rotation away. */
+    .pool-rotate-hint { display: none; }
+    @media (max-width: 900px) and (orientation: portrait) {
+      .pool-rotate-hint {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin: 0 0 0.7rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px dashed var(--pga-gold-dark);
+        border-radius: 4px;
+        background: #fff7d6;
+        color: var(--masters-dark);
+        font-size: 0.78rem;
+        line-height: 1.3;
+      }
+      .pool-rotate-hint__icon {
+        flex: 0 0 auto;
+        width: 1.35rem;
+        height: 1.35rem;
+        color: var(--masters);
+        transform-origin: 50% 50%;
+        animation: rotateHintTilt 4.5s ease-in-out infinite;
+      }
+      .pool-rotate-hint__text { flex: 1 1 auto; }
+      .pool-rotate-hint__text strong { color: var(--masters); font-weight: 700; }
+    }
+    @keyframes rotateHintTilt {
+      0%, 18%   { transform: rotate(0deg); }
+      32%, 55%  { transform: rotate(-90deg); }
+      70%, 100% { transform: rotate(0deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pool-rotate-hint__icon { animation: none; }
     }
     .bettor-dialog {
       border: none;
@@ -799,6 +847,12 @@
               </details>
             </div>
           </div>
+        </div>
+        <div id="poolRotateHint" class="pool-rotate-hint" role="note" aria-label="Rotate your phone to see each player's picks">
+          <svg class="pool-rotate-hint__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36zm-7.31.29C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32z"/>
+          </svg>
+          <span class="pool-rotate-hint__text"><strong>Rotate your phone</strong> to see each player&rsquo;s picks &mdash; or just tap a name.</span>
         </div>
         <div id="poolBody"><p class="sub" style="margin-top:0">Loading…</p></div>
       </section>
