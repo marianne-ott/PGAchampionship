@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PGA Championship 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* PGA Championship palette: deep navy primary, gold accents */
+      --masters: #00234B;          /* primary navy (var name kept for safety) */
+      --masters-dark: #00152E;     /* darker navy */
+      --masters-hover: #003876;    /* hover navy */
+      --pga-gold: #FFC72C;         /* championship gold */
+      --pga-gold-dark: #E0A800;    /* deeper gold */
+      --page: #f4f6fa;             /* light cool gray */
+      --surface: #ffffff;
+      --text: #0f1a2e;
+      --muted: #5a6b85;
+      --border: #dde3ec;
+      --border-strong: #b9c4d6;
+      --row-alt: #f7f9fc;
+      --leader-row: #fff4d0;       /* gold-tinted leader row */
+      --me-row: #e6edf8;           /* navy-tinted lookup row */
+      --danger: #b3261e;
+      --display-font: "Barlow Condensed", "Oswald", "Arial Narrow", "Helvetica Neue Condensed", system-ui, sans-serif;
+      --body-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--body-font);
+      background: var(--page);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+    }
+    .page-main {
+      flex: 1 0 auto;
+    }
+    header {
+      padding: 1.1rem 1.5rem 1.2rem;
+      background: linear-gradient(180deg, var(--masters) 0%, var(--masters-dark) 100%);
+      border-bottom: 4px solid var(--pga-gold);
+      box-shadow: 0 4px 20px rgba(0, 35, 75, 0.18);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1rem;
+      color: #fff;
+    }
+    h1 {
+      margin: 0;
+      font-family: var(--display-font);
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #fff;
+      line-height: 1;
+    }
+    h1 .h1-accent {
+      color: var(--pga-gold);
+      font-weight: 800;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.65rem 1rem;
+      flex: 1;
+      min-width: 0;
+    }
+    .reload-countdown {
+      margin: 0;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.78);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+    .reload-countdown strong { color: var(--pga-gold); font-weight: 700; }
+    label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+    button {
+      padding: 0.55rem 1.25rem;
+      border: 1px solid var(--pga-gold);
+      border-radius: 4px;
+      background: var(--pga-gold);
+      color: var(--masters-dark);
+      font-family: var(--display-font);
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    button:hover:not(:disabled) {
+      background: var(--pga-gold-dark);
+      border-color: var(--pga-gold-dark);
+    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 0.65rem 1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.01em;
+    }
+    .meta strong { color: var(--masters); font-weight: 700; }
+    .error {
+      margin: 0 1rem 1rem;
+      padding: 0.75rem 1rem;
+      background: #fdecea;
+      border: 1px solid #e8a4a0;
+      border-radius: 6px;
+      color: var(--danger);
+      font-size: 0.875rem;
+    }
+    .poolhint {
+      margin: 0 1rem 1rem;
+      padding: 0.75rem 1rem;
+      background: #fff7d6;
+      border: 1px solid var(--pga-gold);
+      border-left: 4px solid var(--pga-gold-dark);
+      border-radius: 4px;
+      color: var(--masters-dark);
+      font-size: 0.85rem;
+    }
+    .poolhint code { color: var(--masters); font-weight: 700; }
+    section.pool {
+      margin: 1rem 1rem 1rem;
+      padding: 1.1rem 1.35rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 4px 24px rgba(0, 35, 75, 0.08);
+    }
+    section.pool h2 {
+      margin: 0 0 0.75rem;
+      font-family: var(--display-font);
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--masters);
+    }
+    .pool table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .pool col.col-name { width: 10.5rem; }
+    .pool col.col-trophy { width: 1.45rem; }
+    .pool col.col-rank { width: 4.35rem; }
+    .pool col.col-score { width: 5.5rem; }
+    .pool col.col-picks { width: auto; }
+    .pool th, .pool td {
+      padding: 0.32rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .pool thead th {
+      background: linear-gradient(180deg, var(--masters-hover) 0%, var(--masters) 60%, var(--masters-dark) 100%);
+      color: #fff;
+      font-family: var(--display-font);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      border-bottom: 2px solid var(--pga-gold);
+    }
+    .pool thead th.th-trophy {
+      width: 1.45rem;
+      padding-left: 0.12rem;
+      padding-right: 0.12rem;
+    }
+    .pool thead th:nth-child(3) { font-size: 0.72rem; letter-spacing: 0.06em; }
+    .pool tbody tr:nth-child(even) { background: var(--row-alt); }
+    .pool tbody tr:nth-child(odd) { background: var(--surface); }
+    .pool tr.leader td { color: var(--masters-dark); background: var(--leader-row) !important; }
+    .pool tr.leader td.rank-col { font-size: 1.55rem; }
+    .pool tr.runner-up td { background: #eaf0fa !important; color: var(--text); }
+    .pool tr.runner-up td.rank-col { color: var(--masters); }
+    .pool td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .pool td.rank-col {
+      text-align: center;
+      font-size: 1.22rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--masters);
+      letter-spacing: -0.02em;
+    }
+    .pool td.rank-col:not(.rank-col--empty) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pool td.trophy-col {
+      text-align: center;
+      vertical-align: middle;
+      padding: 0.28rem 0.12rem;
+      width: 1.45rem;
+    }
+    .pool td.trophy-col .rank-trophy {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .pool td.trophy-col .rank-trophy--gold {
+      font-size: 1.15rem;
+      filter: drop-shadow(0 1px 2px rgba(139, 90, 10, 0.35)) drop-shadow(0 0 4px rgba(212, 175, 55, 0.45));
+    }
+    .pool td.trophy-col .rank-trophy--silver {
+      font-size: 1.08rem;
+      filter: grayscale(1) brightness(1.12) contrast(0.92) drop-shadow(0 1px 2px rgba(71, 85, 105, 0.35));
+      opacity: 0.95;
+    }
+    .you-card .you-rank-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .you-card .you-trophy-slot {
+      width: 1.25rem;
+      min-width: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .you-card .rank-trophy { vertical-align: middle; line-height: 1; }
+    .you-card .rank-trophy--gold { font-size: 1.05rem; filter: drop-shadow(0 1px 2px rgba(139, 90, 10, 0.35)); }
+    .you-card .rank-trophy--silver { font-size: 1rem; filter: grayscale(1) brightness(1.1); opacity: 0.92; }
+    .pool td.rank-col span.rank-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.35rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(0, 35, 75, 0.08);
+      border: 1px solid rgba(0, 35, 75, 0.2);
+      font-family: var(--display-font);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .pool tr.leader td.rank-col span.rank-pill {
+      background: var(--pga-gold);
+      border-color: var(--pga-gold-dark);
+      color: var(--masters-dark);
+      box-shadow: 0 2px 8px rgba(224, 168, 0, 0.35);
+    }
+    .pool td.rank-col.rank-col--empty { font-size: 1rem; font-weight: 600; color: var(--muted); }
+    .pool td.rank-col.rank-col--empty span.rank-pill { display: none; }
+    .pool td.bettor-col {
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      -webkit-tap-highlight-color: rgba(0, 35, 75, 0.18);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pool td.bettor-col:hover { color: var(--masters); text-decoration: underline; }
+    .pool td.bettor-col:focus-visible { outline: 2px solid var(--masters); outline-offset: -2px; }
+    @media (max-width: 900px) {
+      /* On phones we hide the picks column entirely — tap a name to see picks
+         in the modal — and let the name column take the freed-up space. */
+      .pool col.col-picks { display: none; }
+      .pool thead th:nth-child(5) { display: none; }
+      .pool td.picks-cell { display: none; }
+      .pool col.col-name { width: auto; }
+      .pool td.bettor-col::after {
+        content: " \203A"; /* ›  hint that the cell is tappable */
+        color: var(--muted);
+        font-weight: 400;
+        margin-left: 0.15rem;
+      }
+    }
+    .bettor-dialog {
+      border: none;
+      border-top: 4px solid var(--pga-gold);
+      border-radius: 8px;
+      padding: 0;
+      max-width: min(28rem, calc(100vw - 1.5rem));
+      width: 100%;
+      box-shadow: 0 24px 64px rgba(0, 35, 75, 0.35);
+      background: var(--surface);
+      color: var(--text);
+    }
+    .bettor-dialog::backdrop {
+      background: rgba(0, 21, 46, 0.55);
+      backdrop-filter: blur(2px);
+    }
+    .bettor-dialog__head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1rem 0.6rem;
+      background: linear-gradient(180deg, var(--masters) 0%, var(--masters-dark) 100%);
+      color: #fff;
+      border-bottom: 2px solid var(--pga-gold);
+    }
+    .bettor-dialog__head h3 {
+      margin: 0;
+      flex: 1;
+      font-family: var(--display-font);
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .bettor-dialog__close {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.85);
+      border: none;
+      box-shadow: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      padding: 0.1rem 0.45rem;
+      letter-spacing: 0;
+      text-transform: none;
+      cursor: pointer;
+    }
+    .bettor-dialog__close:hover:not(:disabled) {
+      background: transparent;
+      color: var(--pga-gold);
+      border: none;
+    }
+    .bettor-dialog__stats {
+      padding: 0.65rem 1rem 0.4rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .bettor-dialog__stats strong {
+      font-family: var(--display-font);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--masters);
+      margin-left: 0.3rem;
+      letter-spacing: 0;
+    }
+    .bettor-dialog__picks {
+      padding: 0.6rem 1rem 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .bettor-dialog__pick {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 0.4rem 0.7rem;
+      align-items: baseline;
+      padding: 0.45rem 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      font-size: 0.9rem;
+    }
+    .bettor-dialog__pick.drop {
+      opacity: 0.7;
+      background: var(--row-alt);
+    }
+    .bettor-dialog__pick.miss {
+      background: #fdecea;
+      border-color: #e8a4a0;
+    }
+    .bettor-dialog__pick-tier {
+      font-family: var(--display-font);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      min-width: 2.5rem;
+    }
+    .bettor-dialog__pick-name {
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bettor-dialog__pick.drop .bettor-dialog__pick-name {
+      text-decoration: line-through;
+    }
+    .bettor-dialog__pick-pos {
+      font-family: var(--display-font);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      min-width: 2.5rem;
+      text-align: right;
+    }
+    .bettor-dialog__pick-pts {
+      font-family: var(--display-font);
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--masters);
+      min-width: 2.4rem;
+      text-align: right;
+    }
+    .bettor-dialog__pick.drop .bettor-dialog__pick-pts { color: var(--muted); }
+    .bettor-dialog__legend {
+      padding: 0 1rem 0.85rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .pool td.poolscore {
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      padding-top: 0.28rem;
+      padding-bottom: 0.28rem;
+    }
+    .pool td.poolscore.muted { font-size: 0.88rem; color: var(--muted); font-weight: 500; }
+    .pool td.picks-cell { min-width: 0; color: var(--text); vertical-align: top; }
+    /* Seven fixed columns = pot tiers; aligns across all bettor rows */
+    .pick-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.3rem 0.35rem;
+      width: 100%;
+    }
+    .pick-slot {
+      position: relative;
+      min-width: 0;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 0.22rem 0.28rem;
+      background: rgba(255, 255, 255, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.1rem;
+    }
+    .pick-done-flag {
+      position: absolute;
+      top: 0.22rem;
+      right: 0.22rem;
+      font-size: 0.62rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--muted);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .pick-slot .pick-chip {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.64rem;
+      line-height: 1.25;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+    }
+    .pick-chip.count { font-weight: 700; color: var(--masters); }
+    .pick-chip.drop { text-decoration: line-through; opacity: 0.62; color: var(--muted); font-weight: 400; }
+    /* Show full name on wide screens, just the last name on narrow / mobile landscape so chips stay readable */
+    .pick-chip .chip-name-last { display: none; }
+    @media (max-width: 900px) {
+      .pick-chip .chip-name-full { display: none; }
+      .pick-chip .chip-name-last { display: inline; }
+    }
+    .pool .sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; }
+    .pool-top-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem 1rem;
+      margin-bottom: 0.85rem;
+      width: 100%;
+    }
+    .pool-top-row__search {
+      flex: 1 1 14rem;
+      min-width: 0;
+    }
+    .pool-top-row__rules {
+      flex: 0 0 auto;
+      margin-left: auto;
+      text-align: right;
+      overflow: visible;
+      position: relative;
+      z-index: 5;
+    }
+    .pool-top-row__rules .our-head {
+      justify-content: flex-end;
+    }
+    .pool-top-row .pool-toolbar {
+      margin-bottom: 0;
+    }
+    .pool-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.5rem 0.75rem;
+      margin-bottom: 0.85rem;
+      width: 100%;
+    }
+    .pool-toolbar input {
+      flex: 1 1 14rem;
+      min-width: 10rem;
+      max-width: min(28rem, 100%);
+      padding: 0.45rem 0.65rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: var(--body-font);
+    }
+    .pool-toolbar input:focus {
+      outline: none;
+      border-color: var(--masters);
+      box-shadow: 0 0 0 3px rgba(0, 35, 75, 0.15);
+    }
+    .pool-toolbar button.secondary {
+      background: var(--surface);
+      color: var(--masters);
+      border: 1px solid var(--masters);
+      border-radius: 4px;
+      box-shadow: none;
+    }
+    .pool-toolbar button.secondary:hover { background: var(--me-row); }
+    .you-card {
+      margin-bottom: 1rem;
+      padding: 0.9rem 1.15rem;
+      border: 1px solid var(--border-strong);
+      border-left: 4px solid var(--pga-gold);
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--me-row) 0%, var(--surface) 55%);
+    }
+    .you-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.25rem;
+      color: var(--masters);
+      font-family: var(--display-font);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .you-card .you-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; margin-bottom: 0.5rem; color: var(--text); }
+    .you-card .you-rank { font-size: 0.8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .you-card .you-rank strong { font-size: 1.65rem; font-weight: 800; color: var(--masters); margin-left: 0.35rem; letter-spacing: -0.01em; font-family: var(--display-font); }
+    .you-card .you-pts { font-size: 0.85rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+    .you-card .you-pts strong { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-left: 0.25rem; font-family: var(--display-font); }
+    .you-card .you-picks { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+    .you-card .you-picks .pick-grid { margin-top: 0.35rem; }
+    /* Selected lookup row: beat leader/runner-up row backgrounds */
+    #poolSection tbody tr.me > td {
+      background: var(--me-row) !important;
+    }
+    /* Stripe only on first cell — inset shadow on every td looked like thick dividers */
+    #poolSection tbody tr.me > td:first-child {
+      box-shadow: inset 3px 0 0 0 var(--pga-gold);
+    }
+    .wrap { overflow: auto; padding: 0 1rem 1rem; background: var(--surface); }
+    table#grid {
+      border-collapse: collapse;
+      width: max-content;
+      min-width: 100%;
+      font-size: 0.82rem;
+    }
+    #grid th, #grid td {
+      padding: 0.4rem 0.65rem;
+      text-align: left;
+      border: none;
+      white-space: nowrap;
+    }
+    #grid th {
+      position: sticky;
+      top: 0;
+      background: linear-gradient(180deg, var(--masters) 0%, var(--masters-dark) 100%);
+      color: #fff;
+      font-family: var(--display-font);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+      box-shadow: inset 0 -2px 0 var(--pga-gold);
+    }
+    #grid tbody tr:nth-child(even) { background: var(--row-alt); }
+    #grid tbody tr:hover td { background: var(--me-row); }
+    #grid td:nth-child(2) { white-space: normal; min-width: 10rem; }
+    .tabs-wrap { margin: 0 1rem 2rem; }
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--row-alt);
+      border: 1px solid var(--border-strong);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      padding: 0.45rem 0.45rem 0;
+      text-transform: uppercase;
+      box-shadow: none;
+      letter-spacing: 0.05em;
+    }
+    .tab-btn {
+      padding: 0.6rem 1.4rem;
+      border: 1px solid var(--border-strong);
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      margin-bottom: -1px;
+      background: var(--surface);
+      color: var(--muted);
+      font-family: var(--display-font);
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .tab-btn:hover:not(.active) {
+      color: var(--masters);
+      background: #eef2f9;
+      border-color: var(--border);
+    }
+    .tab-btn.active {
+      color: #fff;
+      font-weight: 800;
+      background: linear-gradient(180deg, var(--masters-hover) 0%, var(--masters) 55%, var(--masters-dark) 100%);
+      border-color: var(--masters-dark);
+      box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.12) inset, 0 4px 14px rgba(0, 35, 75, 0.28), inset 0 -3px 0 var(--pga-gold);
+      z-index: 2;
+      position: relative;
+    }
+    .tab-panel {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-top: 3px solid var(--pga-gold);
+      border-radius: 0 0 6px 6px;
+      padding: 0.85rem 1rem 1.1rem;
+      box-shadow: 0 8px 30px rgba(0, 35, 75, 0.06);
+    }
+    .tab-panel[hidden] { display: none !important; }
+    #panelPool section.pool {
+      margin: 0;
+      padding: 0.5rem 0 0;
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    #panelPool .poolhint { margin: 0.75rem 0 0; }
+    section.pool .our-head {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem 0.5rem;
+      margin: 0;
+      font-family: var(--display-font);
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--masters);
+    }
+    .our-head-title { line-height: 1.2; }
+    .pool-rules-details {
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .pool-rules-details summary {
+      list-style: none;
+      cursor: pointer;
+    }
+    .pool-rules-details summary::-webkit-details-marker { display: none; }
+    .pool-rules-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.38rem;
+      height: 1.38rem;
+      border-radius: 50%;
+      border: 1px solid var(--masters);
+      background: var(--masters);
+      color: var(--pga-gold);
+      font-size: 0.72rem;
+      font-weight: 800;
+      font-style: italic;
+      font-family: "Times New Roman", Georgia, serif;
+      line-height: 1;
+      box-shadow: 0 1px 3px rgba(0, 35, 75, 0.18);
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    }
+    .pool-rules-details[open] .pool-rules-trigger {
+      background: var(--pga-gold);
+      border-color: var(--pga-gold-dark);
+      color: var(--masters-dark);
+    }
+    .pool-rules-trigger:hover {
+      background: var(--pga-gold);
+      border-color: var(--pga-gold-dark);
+      color: var(--masters-dark);
+    }
+    .pool-rules-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.35rem);
+      z-index: 20;
+      margin-top: 0;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-strong);
+      border-top: 3px solid var(--pga-gold);
+      border-radius: 4px;
+      background: var(--surface);
+      font-size: 0.78rem;
+      color: var(--text);
+      width: min(22rem, calc(100vw - 2.5rem));
+      max-width: min(40rem, 100vw);
+      line-height: 1.45;
+      box-shadow: 0 8px 24px rgba(0, 35, 75, 0.12);
+      text-align: left;
+    }
+    .pool-rules-panel p { margin: 0 0 0.55rem; text-align: left; }
+    .pool-rules-panel p:last-child { margin-bottom: 0; }
+    .pool-rules-panel strong { color: var(--masters); }
+    .pool-rules-sub {
+      margin: 0 0 0.35rem;
+      font-family: var(--display-font);
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--masters);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .pool-rules-sub:not(:first-child) { margin-top: 0.65rem; }
+    .pool-rules-list {
+      margin: 0 0 0.2rem;
+      padding-left: 1.1rem;
+      text-align: left;
+      color: var(--text);
+    }
+    .pool-rules-list li { margin-bottom: 0.45rem; }
+    .pool-rules-list li:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="h1-accent">PGA</span> Championship 2026</h1>
+    <div class="toolbar">
+      <p id="reloadCountdown" class="reload-countdown" aria-live="polite"></p>
+      <button type="button" id="go">Update</button>
+    </div>
+  </header>
+  <main class="page-main">
+  <div id="err" class="error" hidden></div>
+  <div class="tabs-wrap">
+    <nav class="tabs" role="tablist" aria-label="Main views">
+      <button type="button" class="tab-btn active" role="tab" id="tabPool" aria-selected="true" aria-controls="panelPool">Chosen 7</button>
+      <button type="button" class="tab-btn" role="tab" id="tabPga" aria-selected="false" aria-controls="panelPga">PGA leaderboard</button>
+    </nav>
+    <div class="tab-panel" id="panelPool" role="tabpanel" aria-labelledby="tabPool">
+      <section id="poolSection" class="pool">
+        <div class="pool-top-row">
+          <div id="poolToolbarSlot" class="pool-top-row__search"></div>
+          <div class="pool-top-row__rules">
+            <div class="our-head" role="group" aria-labelledby="poolRulesHeading">
+              <span id="poolRulesHeading" class="our-head-title">Competition Rules</span>
+              <details class="pool-rules-details">
+                <summary class="pool-rules-trigger" title="Full competition rules" aria-label="Full competition rules">i</summary>
+                <div id="poolRulesPanel" class="pool-rules-panel"></div>
+              </details>
+            </div>
+          </div>
+        </div>
+        <div id="poolBody"><p class="sub" style="margin-top:0">Loading…</p></div>
+      </section>
+      <div id="poolhint" class="poolhint" hidden></div>
+    </div>
+    <div class="tab-panel" id="panelPga" role="tabpanel" aria-labelledby="tabPga" hidden>
+      <p class="meta" id="meta">Not loaded yet.</p>
+      <div class="wrap">
+        <table id="grid" aria-label="PGA tournament leaderboard">
+          <thead><tr id="head"></tr></thead>
+          <tbody id="gridBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  </main>
+  <dialog id="bettorDialog" class="bettor-dialog" aria-labelledby="bettorDialogName">
+    <div class="bettor-dialog__head">
+      <h3 id="bettorDialogName"></h3>
+      <button type="button" class="bettor-dialog__close" id="bettorDialogClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="bettor-dialog__stats" id="bettorDialogStats"></div>
+    <div class="bettor-dialog__picks" id="bettorDialogPicks"></div>
+    <p class="bettor-dialog__legend">Greyed-out picks are dropped from the total (only the best <span data-counting>5</span> of <span data-pickspf>7</span> count). Lower total = better.</p>
+  </dialog>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const LS_BETTOR = "mastersPoolMyBettor";
+    let lastPoolStandings = null;
+    let loadSeq = 0;
+
+    function lastWordOf(name) {
+      const parts = String(name || "").trim().split(/\s+/);
+      return parts.length ? parts[parts.length - 1] : "";
+    }
+
+    function openBettorModal(friend, standings) {
+      const dlg = $("bettorDialog");
+      if (!dlg || !friend) return;
+      $("bettorDialogName").textContent = friend.name || "?";
+      const stats = $("bettorDialogStats");
+      const cp = standings && standings.counting_picks;
+      const pp = standings && standings.picks_per_friend;
+      stats.innerHTML = "";
+      if (friend.ok && friend.rank != null) {
+        stats.innerHTML =
+          "<span>Rank<strong>" + String(friend.rank) + "</strong></span>" +
+          "<span>Total<strong>" + String(friend.total) + "</strong></span>" +
+          (cp && pp ? "<span>Best<strong>" + String(cp) + " of " + String(pp) + "</strong></span>" : "");
+      } else if (friend.error) {
+        stats.innerHTML = "<span style='color:var(--danger);text-transform:none;letter-spacing:0'>" + escapeHtml(friend.error) + "</span>";
+      }
+      const picksWrap = $("bettorDialogPicks");
+      picksWrap.innerHTML = "";
+      const picks = friend.picks || [];
+      picks.forEach((p, i) => {
+        const row = document.createElement("div");
+        const cls = ["bettor-dialog__pick"];
+        if (p.missing) cls.push("miss");
+        else if (p.counts === false) cls.push("drop");
+        row.className = cls.join(" ");
+        const tier = "Pot " + String(i + 1);
+        let nameTxt, posTxt, ptsTxt;
+        if (p.missing) {
+          nameTxt = (p.pick || "") + " (no match)";
+          posTxt = "—";
+          ptsTxt = "—";
+        } else {
+          nameTxt = (p.matched && p.matched !== p.pick) ? p.matched : (p.pick || "");
+          posTxt = p.position || "—";
+          ptsTxt = String(p.points);
+        }
+        row.innerHTML =
+          "<span class='bettor-dialog__pick-tier'>" + escapeHtml(tier) + "</span>" +
+          "<span class='bettor-dialog__pick-name'>" + escapeHtml(nameTxt) + "</span>" +
+          "<span class='bettor-dialog__pick-pos'>" + escapeHtml(posTxt) + "</span>" +
+          "<span class='bettor-dialog__pick-pts'>" + escapeHtml(ptsTxt) + "</span>";
+        picksWrap.appendChild(row);
+      });
+      const legend = dlg.querySelector(".bettor-dialog__legend");
+      if (legend) {
+        const ce = legend.querySelector("[data-counting]");
+        const pe = legend.querySelector("[data-pickspf]");
+        if (ce && cp) ce.textContent = String(cp);
+        if (pe && pp) pe.textContent = String(pp);
+      }
+      if (typeof dlg.showModal === "function") dlg.showModal();
+      else dlg.setAttribute("open", "");
+    }
+
+    function closeBettorModal() {
+      const dlg = $("bettorDialog");
+      if (!dlg) return;
+      if (typeof dlg.close === "function") dlg.close();
+      else dlg.removeAttribute("open");
+    }
+
+    function initBettorDialog() {
+      const dlg = $("bettorDialog");
+      if (!dlg) return;
+      const closeBtn = $("bettorDialogClose");
+      if (closeBtn) closeBtn.addEventListener("click", closeBettorModal);
+      // Click on the backdrop (outside the dialog content) closes too.
+      dlg.addEventListener("click", (e) => {
+        if (e.target === dlg) closeBettorModal();
+      });
+    }
+    initBettorDialog();
+
+    const AUTO_RELOAD_MS = 60000;
+    let autoReloadTimer = null;
+    let nextReloadAt = 0;
+    let fetchInFlight = false;
+
+    function cancelAutoReload() {
+      if (autoReloadTimer) {
+        clearTimeout(autoReloadTimer);
+        autoReloadTimer = null;
+      }
+    }
+
+    function scheduleNextAutoReload() {
+      cancelAutoReload();
+      nextReloadAt = Date.now() + AUTO_RELOAD_MS;
+      autoReloadTimer = setTimeout(() => {
+        autoReloadTimer = null;
+        load();
+      }, AUTO_RELOAD_MS);
+      updateReloadCountdownDisplay();
+    }
+
+    function updateReloadCountdownDisplay() {
+      const el = $("reloadCountdown");
+      if (!el) return;
+      if (fetchInFlight) {
+        el.textContent = "Updating leaderboard…";
+        return;
+      }
+      if (!nextReloadAt) {
+        el.textContent = "";
+        return;
+      }
+      const sec = Math.max(0, Math.ceil((nextReloadAt - Date.now()) / 1000));
+      el.innerHTML = "Next auto-refresh in <strong>" + String(sec) + "</strong> s";
+    }
+
+    function setLoading(on) {
+      $("go").disabled = on;
+      $("go").textContent = on ? "Loading…" : "Update";
+    }
+
+    function showError(msg) {
+      const el = $("err");
+      if (msg) { el.textContent = msg; el.hidden = false; }
+      else { el.hidden = true; }
+    }
+
+    function renderLeaderboard(data) {
+      const src = data.source || "";
+      $("meta").innerHTML =
+        "Last updated: <strong>" + (data.fetchedAt || "—") + "</strong>" +
+        " · Source: <strong>" + escapeHtml(src) + "</strong>" +
+        " · <strong>" + (data.rows || []).length + "</strong> rows";
+      const hr = $("head");
+      const bd = $("gridBody");
+      hr.innerHTML = "";
+      bd.innerHTML = "";
+      (data.columns || []).forEach((c) => {
+        const th = document.createElement("th");
+        th.textContent = c;
+        hr.appendChild(th);
+      });
+      (data.rows || []).forEach((row) => {
+        const tr = document.createElement("tr");
+        row.forEach((cell) => {
+          const td = document.createElement("td");
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        bd.appendChild(tr);
+      });
+    }
+
+    function renderPool(pool, lb) {
+      const sec = $("poolSection");
+      const body = $("poolBody");
+      const toolbarSlot = $("poolToolbarSlot");
+      if (toolbarSlot) toolbarSlot.replaceChildren();
+      const rulesPanel = $("poolRulesPanel");
+      if (rulesPanel) rulesPanel.innerHTML = "";
+      const hint = $("poolhint");
+      hint.hidden = true;
+      hint.textContent = "";
+      if (!pool) {
+        body.innerHTML = "<p class='error' style='margin:0'>No pool data.</p>";
+        return;
+      }
+      body.innerHTML = "";
+
+      if (pool.fileExists === false) {
+        body.innerHTML = "<p class='error' style='margin:0'><strong>No pool file.</strong></p>";
+        return;
+      }
+
+      if (pool.parseError) {
+        body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(pool.parseError) + "</p>";
+        return;
+      }
+
+      const st = pool.standings;
+      if (!st) {
+        body.textContent = "No standings.";
+        return;
+      }
+      if (!st.ok) {
+        body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(st.error || "Pool error") + "</p>";
+        return;
+      }
+
+      const isPga = (lb.source || "").indexOf("pgatour.com") !== -1;
+      if (!isPga) {
+        body.innerHTML = "<p class='error' style='margin:0'>Pool needs the default PGA leaderboard URL (pgatour.com).</p>";
+        return;
+      }
+
+      lastPoolStandings = st;
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "pool-toolbar";
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.id = "meBettor";
+      inp.setAttribute("list", "meBettorList");
+      inp.placeholder = "look up name";
+      inp.setAttribute("aria-label", "Look up name");
+      inp.autocomplete = "off";
+      const dl = document.createElement("datalist");
+      dl.id = "meBettorList";
+      (st.friends || []).forEach((fr) => {
+        const o = document.createElement("option");
+        o.value = fr.name;
+        dl.appendChild(o);
+      });
+      const btnClr = document.createElement("button");
+      btnClr.type = "button";
+      btnClr.className = "secondary";
+      btnClr.textContent = "Clear";
+      toolbar.appendChild(inp);
+      toolbar.appendChild(btnClr);
+      toolbar.appendChild(dl);
+      if (toolbarSlot) toolbarSlot.appendChild(toolbar);
+      else body.appendChild(toolbar);
+
+      const youCard = document.createElement("div");
+      youCard.id = "youCard";
+      youCard.className = "you-card";
+      youCard.hidden = true;
+      body.appendChild(youCard);
+
+      if (rulesPanel) {
+        const nDrop = st.picks_per_friend - st.counting_picks;
+        rulesPanel.innerHTML =
+          '<div class="pool-rules-sub">Scoring</div>' +
+          '<p>You have <strong>' +
+          String(st.picks_per_friend) +
+          '</strong> picks per player. Your <strong>total</strong> is the sum of points from the <strong>' +
+          String(st.counting_picks) +
+          '</strong> picks that count. <strong>Lowest total wins.</strong></p>' +
+          '<p>Each pick earns points equal to that golfer&rsquo;s <strong>listed finishing position</strong> (a worse finish means a higher number). A <strong>missed cut</strong> &mdash; or a player who hasn&rsquo;t teed off yet &mdash; is worth <strong>' +
+          String(st.cut_points) +
+          '</strong> points.</p>' +
+          '<div class="pool-rules-sub">Which picks count?</div>' +
+          '<p>We drop your <strong>' +
+          String(nDrop) +
+          '</strong> picks with the <strong>highest</strong> point totals (your worst results). Those chips are <strong>struck through</strong> and are not added to your total.</p>';
+      }
+
+      function pickChipsHtml(picks) {
+        if (!picks || !picks.length) return "";
+        return "<div class='pick-grid'>" + picks.map((p) => {
+          let inner = "";
+          let slotCls = "pick-slot";
+          if (p.missing) {
+            const lastFull = escapeHtml(p.pick);
+            const lastShort = escapeHtml(lastWordOf(p.pick));
+            inner =
+              "<span class='pick-chip drop' title='" + escapeHtml(p.pick + " (no match)") + "'>" +
+              "<span class='chip-name-full'>" + lastFull + "</span>" +
+              "<span class='chip-name-last'>" + lastShort + "</span>" +
+              "</span>";
+          } else {
+            const lab = (p.matched && p.matched !== p.pick) ? p.matched : p.pick;
+            const cls = p.counts ? "count" : "drop";
+            const pts = String(p.points);
+            const tip = escapeHtml(lab + " " + String(p.position) + " → " + pts + " pts");
+            inner =
+              "<span class='pick-chip " +
+              cls +
+              "' title='" +
+              tip +
+              "'>" +
+              "<span class='chip-name-full'>" + escapeHtml(lab) + "</span>" +
+              "<span class='chip-name-last'>" + escapeHtml(lastWordOf(lab)) + "</span>" +
+              " " +
+              escapeHtml(pts) +
+              "</span>";
+          }
+          const doneFlag =
+            !p.missing && p.doneFinalRound
+              ? '<span class="pick-done-flag" role="img" aria-label="Finished final round" title="Finished final round">\u2713</span>'
+              : "";
+          return "<div class='" + slotCls + "'>" + doneFlag + inner + "</div>";
+        }).join("") + "</div>";
+      }
+
+      const tbl = document.createElement("table");
+      const cg = document.createElement("colgroup");
+      ["col-name", "col-trophy", "col-rank", "col-score", "col-picks"].forEach((cls) => {
+        const col = document.createElement("col");
+        col.className = cls;
+        cg.appendChild(col);
+      });
+      tbl.appendChild(cg);
+      const thead = document.createElement("thead");
+      const trh = document.createElement("tr");
+      ["Name", "", "Rank", "Total", "Picks"].forEach((h, hi) => {
+        const th = document.createElement("th");
+        if (hi === 1) {
+          th.className = "th-trophy";
+          th.setAttribute("aria-label", "Prize");
+          th.innerHTML = "&nbsp;";
+        } else {
+          th.textContent = h;
+        }
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh);
+      tbl.appendChild(thead);
+      const tb = document.createElement("tbody");
+
+      (st.friends || []).forEach((fr) => {
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-player", fr.name);
+        if (fr.ok && fr.rank === 1) tr.classList.add("leader");
+        if (fr.ok && fr.rank === 2) tr.classList.add("runner-up");
+        const tdR = document.createElement("td");
+        tdR.className = "rank-col" + (fr.ok && fr.rank != null ? "" : " rank-col--empty");
+        if (fr.ok && fr.rank != null) {
+          tdR.innerHTML = "<span class='rank-pill'>" + String(fr.rank) + "</span>";
+        } else {
+          tdR.textContent = "—";
+        }
+        const tdN = document.createElement("td");
+        tdN.className = "bettor-col";
+        tdN.textContent = fr.name;
+        tdN.setAttribute("role", "button");
+        tdN.setAttribute("tabindex", "0");
+        tdN.title = fr.name + " — tap for full pick list";
+        tdN.addEventListener("click", () => openBettorModal(fr, st));
+        tdN.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openBettorModal(fr, st);
+          }
+        });
+        const tdTr = document.createElement("td");
+        tdTr.className = "trophy-col";
+        if (fr.ok && fr.rank === 1) {
+          tdTr.innerHTML =
+            "<span class='rank-trophy rank-trophy--gold' title='1st place — top prize' aria-label='1st place, top prize'>" +
+            "<span aria-hidden='true'>🏆</span></span>";
+        } else if (fr.ok && fr.rank === 2) {
+          tdTr.innerHTML =
+            "<span class='rank-trophy rank-trophy--silver' title='2nd place — runner-up prize' aria-label='2nd place, runner-up prize'>" +
+            "<span aria-hidden='true'>🏆</span></span>";
+        } else {
+          tdTr.innerHTML = "";
+        }
+        const tdT = document.createElement("td");
+        tdT.className = "poolscore" + (fr.ok ? "" : " muted");
+        tdT.textContent = fr.ok ? String(fr.total) : "—";
+        tdT.setAttribute("title", fr.ok ? "Sum of best " + st.counting_picks + " of " + st.picks_per_friend + " picks (lower is better)" : "");
+        const tdP = document.createElement("td");
+        tdP.className = "picks-cell";
+        if (fr.picks && fr.picks.length) {
+          tdP.innerHTML = pickChipsHtml(fr.picks);
+        } else {
+          tdP.textContent = fr.error || "";
+        }
+        tr.appendChild(tdN);
+        tr.appendChild(tdTr);
+        tr.appendChild(tdR);
+        tr.appendChild(tdT);
+        tr.appendChild(tdP);
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb);
+      body.appendChild(tbl);
+
+      function findFriendByQuery(q) {
+        const t = (q || "").trim().toLowerCase();
+        if (!t) return null;
+        const exact = (st.friends || []).find((f) => (f.name || "").toLowerCase() === t);
+        if (exact) return exact;
+        const starts = (st.friends || []).filter((f) => (f.name || "").toLowerCase().startsWith(t));
+        if (starts.length === 1) return starts[0];
+        return null;
+      }
+
+      function updateMeHighlight() {
+        const q = inp.value;
+        const fr = findFriendByQuery(q);
+        tbl.querySelectorAll("tbody tr").forEach((tr) => tr.classList.remove("me"));
+        const card = $("youCard");
+        if (!fr) {
+          card.hidden = true;
+          card.innerHTML = "";
+          return;
+        }
+        let row = null;
+        tbl.querySelectorAll("tbody tr").forEach((tr) => {
+          if ((tr.getAttribute("data-player") || "") === fr.name) row = tr;
+        });
+        if (row) {
+          row.classList.add("me");
+          row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+        card.hidden = false;
+        let picksHtml = "";
+        if (fr.picks && fr.picks.length) {
+          picksHtml = pickChipsHtml(fr.picks);
+        } else {
+          picksHtml = escapeHtml(fr.error || "");
+        }
+        let youRankBits = "";
+        if (fr.ok && fr.rank != null) {
+          let slot = "<span class='you-trophy-slot'></span>";
+          if (fr.rank === 1) {
+            slot =
+              "<span class='you-trophy-slot'><span class='rank-trophy rank-trophy--gold' title='1st place — top prize' aria-hidden='true'>🏆</span></span>";
+          } else if (fr.rank === 2) {
+            slot =
+              "<span class='you-trophy-slot'><span class='rank-trophy rank-trophy--silver' title='2nd place — runner-up prize' aria-hidden='true'>🏆</span></span>";
+          }
+          youRankBits =
+            "<span class='you-rank-row'>" +
+            slot +
+            "<span class='you-rank'>Rank <strong>" +
+            String(fr.rank) +
+            "</strong></span></span>";
+        }
+        card.innerHTML =
+          "<h3>" + escapeHtml(fr.name) + "</h3>" +
+          "<div class='you-stats'>" +
+          (fr.ok && fr.rank != null
+            ? youRankBits + "<span class='you-pts'>Total <strong>" + String(fr.total) + "</strong></span>"
+            : "<span class='you-pts'>Total <strong>—</strong></span>") +
+          "</div>" +
+          "<div class='you-picks'>" + picksHtml + "</div>";
+      }
+
+      inp.addEventListener("input", updateMeHighlight);
+      inp.addEventListener("blur", () => {
+        const fr = findFriendByQuery(inp.value);
+        if (fr) {
+          localStorage.setItem(LS_BETTOR, fr.name);
+          if (inp.value.trim() !== fr.name) {
+            inp.value = fr.name;
+            updateMeHighlight();
+          }
+        }
+      });
+      btnClr.addEventListener("click", () => {
+        localStorage.removeItem(LS_BETTOR);
+        inp.value = "";
+        updateMeHighlight();
+      });
+
+      const saved = localStorage.getItem(LS_BETTOR);
+      if (saved) inp.value = saved;
+      updateMeHighlight();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    async function load() {
+      const seq = ++loadSeq;
+      cancelAutoReload();
+      fetchInFlight = true;
+      updateReloadCountdownDisplay();
+      setLoading(true);
+      $("meta").textContent = "Fetching…";
+      showError("");
+      try {
+        const res = await fetch("./data.json?_=" + Date.now(), { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const bundle = await res.json();
+        if (seq !== loadSeq) return;
+        if (bundle.error) throw new Error(bundle.error);
+        renderLeaderboard(bundle.leaderboard);
+        renderPool(bundle.pool, bundle.leaderboard);
+      } catch (e) {
+        if (seq !== loadSeq) return;
+        showError(e.message || String(e));
+        $("meta").textContent = "Request failed.";
+        $("poolBody").innerHTML = "<p class='error' style='margin:0'>Could not load data.json. Try again in a moment.</p>";
+      } finally {
+        if (seq === loadSeq) {
+          fetchInFlight = false;
+          setLoading(false);
+          scheduleNextAutoReload();
+        }
+      }
+    }
+
+    function initTabs() {
+      const tabPool = $("tabPool");
+      const tabPga = $("tabPga");
+      const panelPool = $("panelPool");
+      const panelPga = $("panelPga");
+      function go(which) {
+        const pga = which === "pga";
+        tabPool.classList.toggle("active", !pga);
+        tabPga.classList.toggle("active", pga);
+        tabPool.setAttribute("aria-selected", String(!pga));
+        tabPga.setAttribute("aria-selected", String(pga));
+        panelPool.hidden = pga;
+        panelPga.hidden = !pga;
+      }
+      tabPool.addEventListener("click", () => go("pool"));
+      tabPga.addEventListener("click", () => go("pga"));
+    }
+    initTabs();
+
+    $("go").addEventListener("click", load);
+    setInterval(updateReloadCountdownDisplay, 500);
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+{
+  "cut_points": 75,
+  "counting_picks": 5,
+  "picks_per_friend": 7,
+  "friends": [
+    {
+      "name": "Alexander",
+      "picks": [
+        "Ludvig Aberg",
+        "Alex Noren",
+        "Justin Rose",
+        "Alex Fitzpatrick",
+        "Wyndham Clark",
+        "Sungjae Im",
+        "Mikael Lindberg"
+      ]
+    },
+    {
+      "name": "Anders",
+      "picks": [
+        "Scottie Scheffler",
+        "Min Woo Lee",
+        "Patrick Reed",
+        "Aaron Rai",
+        "Sudarshan Yellamaraju",
+        "Sungjae Im",
+        "Dustin Johnson"
+      ]
+    },
+    {
+      "name": "Andreas",
+      "picks": [
+        "Scottie Scheffler",
+        "Chris Gotterup",
+        "Jacob Bridgeman",
+        "Jason Day",
+        "Brian Harman",
+        "Sungjae Im",
+        "Haotong Li"
+      ]
+    },
+    {
+      "name": "Elisabeth",
+      "picks": [
+        "Ludvig Aberg",
+        "Viktor Hovland",
+        "Kristoffer Reitan",
+        "Gary Woodland",
+        "Brooks Koepka",
+        "Sungjae Im",
+        "Rasmus Neergaard-Petersen"
+      ]
+    },
+    {
+      "name": "Erik",
+      "picks": [
+        "Matt Fitzpatrick",
+        "Nicolai Hojgaard",
+        "Patrick Reed",
+        "Alex Fitzpatrick",
+        "Rasmus Hojgaard",
+        "Max Homa",
+        "Haotong Li"
+      ]
+    },
+    {
+      "name": "Fredrik",
+      "picks": [
+        "Rory McIlroy",
+        "Viktor Hovland",
+        "Kristoffer Reitan",
+        "Corey Conners",
+        "Brian Harman",
+        "Sungjae Im",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "Henrik",
+      "picks": [
+        "Scottie Scheffler",
+        "Hideki Matsuyama",
+        "Patrick Reed",
+        "Corey Conners",
+        "Brooks Koepka",
+        "Taylor Pendrith",
+        "Stephan Jaeger"
+      ]
+    },
+    {
+      "name": "Jarle",
+      "picks": [
+        "Ludvig Aberg",
+        "Chris Gotterup",
+        "Tyrrell Hatton",
+        "Jason Day",
+        "Sahith Theegala",
+        "Andrew Novak",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "Jonny",
+      "picks": [
+        "Scottie Scheffler",
+        "Chris Gotterup",
+        "Justin Rose",
+        "Alex Fitzpatrick",
+        "Sudarshan Yellamaraju",
+        "Matt Wallace",
+        "Rasmus Neergaard-Petersen"
+      ]
+    },
+    {
+      "name": "Kristian",
+      "picks": [
+        "Rickie Fowler",
+        "Viktor Hovland",
+        "Kristoffer Reitan",
+        "Joaquin Niemann",
+        "Ryo Hisatsune",
+        "Sungjae Im",
+        "Dustin Johnson"
+      ]
+    },
+    {
+      "name": "Marianne",
+      "picks": [
+        "Scottie Scheffler",
+        "Shane Lowry",
+        "Justin Rose",
+        "Jason Day",
+        "Brooks Koepka",
+        "Chris Kirk",
+        "Haotong Li"
+      ]
+    },
+    {
+      "name": "Mathias",
+      "picks": [
+        "Scottie Scheffler",
+        "Viktor Hovland",
+        "Justin Rose",
+        "Corey Conners",
+        "Brooks Koepka",
+        "Sungjae Im",
+        "Stephan Jaeger"
+      ]
+    },
+    {
+      "name": "Morten",
+      "picks": [
+        "Scottie Scheffler",
+        "Viktor Hovland",
+        "Kristoffer Reitan",
+        "Alex Fitzpatrick",
+        "Brooks Koepka",
+        "Sungjae Im",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "Nicolai",
+      "picks": [
+        "Xander Schauffele",
+        "Viktor Hovland",
+        "Tyrrell Hatton",
+        "Joaquin Niemann",
+        "Brooks Koepka",
+        "Sungjae Im",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "Petter",
+      "picks": [
+        "Scottie Scheffler",
+        "Harry Hall",
+        "Kristoffer Reitan",
+        "Alex Fitzpatrick",
+        "Brian Harman",
+        "Max Homa",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "Stian",
+      "picks": [
+        "Scottie Scheffler",
+        "Shane Lowry",
+        "Kristoffer Reitan",
+        "Joaquin Niemann",
+        "Brooks Koepka",
+        "Max Homa",
+        "Dustin Johnson"
+      ]
+    },
+    {
+      "name": "Sunniva",
+      "picks": [
+        "Cameron Young",
+        "Viktor Hovland",
+        "Kristoffer Reitan",
+        "Alex Fitzpatrick",
+        "Michael Kim",
+        "Max Homa",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "Thomas",
+      "picks": [
+        "Scottie Scheffler",
+        "Viktor Hovland",
+        "Justin Thomas",
+        "Gary Woodland",
+        "Brooks Koepka",
+        "Denny McCarthy",
+        "Max Greyserman"
+      ]
+    },
+    {
+      "name": "Thor",
+      "picks": [
+        "Scottie Scheffler",
+        "Shane Lowry",
+        "Kristoffer Reitan",
+        "Alex Fitzpatrick",
+        "J.T. Poston",
+        "Max Homa",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "Vegard",
+      "picks": [
+        "Matt Fitzpatrick",
+        "Chris Gotterup",
+        "Justin Rose",
+        "Alex Fitzpatrick",
+        "Brooks Koepka",
+        "Sungjae Im",
+        "Marco Penge"
+      ]
+    },
+    {
+      "name": "William",
+      "picks": [
+        "Cameron Young",
+        "Sam Burns",
+        "Justin Thomas",
+        "Jason Day",
+        "Brooks Koepka",
+        "Sungjae Im",
+        "Max Greyserman"
+      ]
+    }
+  ]
+}

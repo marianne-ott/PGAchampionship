@@ -1,0 +1,52 @@
+name: Refresh leaderboard and deploy
+
+on:
+  schedule:
+    # Every 5 minutes. GitHub free runners often slip to 10–15 min during peak.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, but don't cancel in-progress runs
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build static snapshot (docs/data.json)
+        # If pgatour.com is briefly unreachable we keep the previous committed
+        # docs/data.json so the site never goes blank.
+        run: |
+          python3 build_static.py || echo "::warning::build_static.py failed; falling back to existing docs/data.json"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

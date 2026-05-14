@@ -1,0 +1,19 @@
+{
+  "cut_points": 75,
+  "counting_picks": 5,
+  "picks_per_friend": 7,
+  "friends": [
+    {
+      "name": "Replace with real names",
+      "picks": [
+        "Scottie Scheffler",
+        "Sam Burns",
+        "Justin Rose",
+        "Ludvig Åberg",
+        "Xander Schauffele",
+        "Viktor Hovland",
+        "Dustin Johnson"
+      ]
+    }
+  ]
+}
