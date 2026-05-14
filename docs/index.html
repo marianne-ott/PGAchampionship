@@ -1299,17 +1299,20 @@
     }
     initBettorDialog();
 
-    /* The data file is rebuilt by a GitHub Actions workflow with five
-       offset cron schedules — effective cadence ~1 minute. We don't
-       trigger the rebuild from the browser; we just fetch the static
-       JSON whenever it might have changed. Whenever we're waiting for a
-       new build (i.e. our most recently fetched data is from before the
-       most recent expected cron tick) we poll a little more frequently
-       so the new file lands fast; otherwise we poll on a relaxed
-       schedule. */
+    /* The data file is rebuilt by a GitHub Actions workflow with two
+       staggered crons (~2-3 min cadence during the tournament, 5 min
+       after). We don't trigger the rebuild from the browser; we just
+       fetch the static JSON whenever it might have changed. When we're
+       waiting for a build that's expected to have produced fresh data,
+       we poll a little more frequently so the new file lands fast;
+       otherwise we poll on a relaxed schedule. */
     const ONE_MIN_MS = 60 * 1000;
-    const POLL_NORMAL_MS = 15 * 1000;
-    const POLL_BUSY_MS = 5 * 1000;
+    const POLL_NORMAL_MS = 30 * 1000;
+    const POLL_BUSY_MS = 10 * 1000;
+    /* GitHub's build + Pages CDN propagation takes about a minute after a
+       cron fires. Don't flag data as "stale" until that grace has elapsed,
+       otherwise we busy-poll the entire window between cron ticks. */
+    const BUILD_GRACE_MS = 60 * 1000;
     /* When the GitHub Actions workflow drops from ~2-3 min cadence (two
        staggered crons) back to the 5-min baseline. Keep this in sync with
        the cutoff in .github/workflows/deploy.yml. */
@@ -1321,23 +1324,39 @@
       return Date.now() < TOURNAMENT_BURST_END_MS;
     }
 
+    /* Returns the timestamp of the most recent cron tick we expect GH
+       Actions to have fired. The crons are `0-59/5` (always) plus
+       `2-59/5` during the tournament burst — i.e. minutes whose value
+       mod 5 is 0 or 2. */
     function lastCronTickMs() {
       const now = new Date();
-      const inCycleMs =
-        now.getUTCSeconds() * 1000 +
-        now.getUTCMilliseconds();
-      return now.getTime() - inCycleMs;
+      const min = now.getUTCMinutes();
+      const startOfThisMinuteMs =
+        now.getTime() - now.getUTCSeconds() * 1000 - now.getUTCMilliseconds();
+      const burst = inTournamentBurst();
+      for (let dm = 0; dm < 5; dm++) {
+        const m = (min - dm + 60) % 60;
+        const isBaselineSlot = (m % 5) === 0;
+        const isBurstSlot = burst && (m % 5) === 2;
+        if (isBaselineSlot || isBurstSlot) {
+          return startOfThisMinuteMs - dm * ONE_MIN_MS;
+        }
+      }
+      return startOfThisMinuteMs;
     }
 
-    /* True if the most recent cron tick has already fired but we don't yet
-       have data from after it — i.e. the new file is still building or
-       hasn't propagated to the CDN. Used purely to drive how often we poll
-       for the new docs/data.json; not surfaced in the UI. */
+    /* True if the most recent expected cron tick fired more than
+       BUILD_GRACE_MS ago and our data is still older than that tick —
+       i.e. the new file should exist on the CDN by now. Used purely
+       to drive how often we poll for new data.json; not surfaced in
+       the UI. */
     function isAwaitingNewBuild() {
       if (!lastFetchedAtRaw) return false;
       const dataTimeMs = new Date(lastFetchedAtRaw).getTime();
       if (isNaN(dataTimeMs)) return false;
-      return dataTimeMs < lastCronTickMs();
+      const tickMs = lastCronTickMs();
+      if (Date.now() - tickMs < BUILD_GRACE_MS) return false;
+      return dataTimeMs < tickMs;
     }
 
     function cancelAutoReload() {
@@ -1698,7 +1717,10 @@
       const seq = ++loadSeq;
       cancelAutoReload();
       fetchInFlight = true;
-      $("meta").textContent = t("fetching");
+      /* Don't swap the meta line to "Fetching…" on every poll — most
+         polls return the same snapshot, and the placeholder swap is what
+         makes the header look like it's reloading every few seconds.
+         Only fall back to a status string if the load actually fails. */
       showError("");
       try {
         const res = await fetch("./data.json?_=" + Date.now(), { cache: "no-store" });
@@ -1706,11 +1728,15 @@
         const bundle = await res.json();
         if (seq !== loadSeq) return;
         if (bundle.error) throw new Error(bundle.error);
+        const newFetchedAt = (bundle.leaderboard && bundle.leaderboard.fetchedAt) || null;
+        const snapshotUnchanged = lastBundle && newFetchedAt && newFetchedAt === lastFetchedAtRaw;
         lastBundle = bundle;
-        lastFetchedAtRaw = (bundle.leaderboard && bundle.leaderboard.fetchedAt) || null;
-        renderLeaderboard(bundle.leaderboard);
-        renderPool(bundle.pool, bundle.leaderboard);
-        updateReloadCountdownDisplay();
+        if (!snapshotUnchanged) {
+          lastFetchedAtRaw = newFetchedAt;
+          renderLeaderboard(bundle.leaderboard);
+          renderPool(bundle.pool, bundle.leaderboard);
+          updateReloadCountdownDisplay();
+        }
       } catch (e) {
         if (seq !== loadSeq) return;
         showError(e.message || String(e));
