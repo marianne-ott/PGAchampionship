@@ -1403,8 +1403,7 @@
         ? "<a href=\"" + escapeHtml(src) + "\" target=\"_blank\" rel=\"noopener\">" + escapeHtml(prettySrc) + "</a>"
         : "—";
       $("meta").innerHTML =
-        escapeHtml(t("source")) + ": <strong>" + srcHtml + "</strong>" +
-        " · <strong>" + (data.rows || []).length + "</strong> " + escapeHtml(t("rows"));
+        escapeHtml(t("source")) + ": <strong>" + srcHtml + "</strong>";
       const hr = $("head");
       const bd = $("gridBody");
       hr.innerHTML = "";
