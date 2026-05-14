@@ -3,22 +3,23 @@ name: Refresh leaderboard and deploy
 on:
   schedule:
     # ─── Always-on baseline ────────────────────────────────────────────
-    # This cron always runs (even after the cutoff below). 5-minute floor
-    # imposed by GitHub Actions.
+    # Runs at minutes :00, :05, :10, … :55. 5-minute floor is the minimum
+    # GitHub Actions allows, and `schedule` events are best-effort — GH
+    # silently drops triggers when its scheduler is busy. This entry is
+    # the safety net that runs even after the tournament cutoff below.
     - cron: "0-59/5 * * * *"
     # ─── TOURNAMENT BURST ──────────────────────────────────────────────
-    # Four extra crons offset by 1, 2, 3, 4 minutes so the combined effect
-    # is ~1 update per minute during the 2026 PGA Championship. The "Cron
-    # gate" step below skips real work for these after the cutoff
-    # (Monday 18 May 2026 at 09:00 ET = 13:00 UTC), so after the final
-    # round we automatically drop back to the 5-minute baseline.
-    # If you want to also stop the brief no-op runner spin-ups after the
-    # cutoff, just comment out these four lines (the baseline cron above
-    # is enough on its own).
-    - cron: "1-59/5 * * * *"
+    # One extra cron offset by 2 minutes (:02, :07, :12, …) so combined
+    # with the baseline we target ~2-3 minutes between updates during
+    # the 2026 PGA Championship. We previously tried 5 staggered crons
+    # for ~1-min cadence, but GH's cron scheduler dropped most of them
+    # when it got busy — two crons is the sweet spot between cadence
+    # and reliability, and also stays well under GitHub Pages' build
+    # rate limit (~10 builds/hour per repo). The "Cron gate" step below
+    # short-circuits this extra cron after the cutoff (Monday 18 May
+    # 2026 at 09:00 ET = 13:00 UTC) so we automatically drop back to
+    # the 5-minute baseline once the final round is over.
     - cron: "2-59/5 * * * *"
-    - cron: "3-59/5 * * * *"
-    - cron: "4-59/5 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -40,13 +41,13 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Cron gate (skip tournament-burst crons after cutoff)
+      - name: Cron gate (skip tournament-burst cron after cutoff)
         id: gate
         # The baseline cron, manual workflow_dispatch and push triggers
-        # always run. The four offset crons only run before the cutoff;
-        # after the cutoff they short-circuit to a tiny no-op so we don't
-        # waste CDN bandwidth or Pages deploys on data that isn't really
-        # changing anymore.
+        # always run. The single offset cron (`2-59/5`) only runs before
+        # the cutoff; after the cutoff it short-circuits to a tiny no-op
+        # so we don't waste Pages deploys on data that isn't changing
+        # anymore.
         run: |
           set -euo pipefail
           BASE_CRON='0-59/5 * * * *'
