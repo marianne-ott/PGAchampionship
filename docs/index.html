@@ -344,8 +344,12 @@
       min-width: 2.35rem;
       padding: 0.2rem 0.45rem;
       border-radius: 4px;
-      background: rgba(0, 35, 75, 0.08);
-      border: 1px solid rgba(0, 35, 75, 0.2);
+      background: rgba(0, 35, 75, 0.1);
+      /* Transparent border keeps the box dimensions stable, but leaves
+         no visible second horizontal line inside the rank column —
+         which used to look like a "step" against the row divider. The
+         leader override below paints this border gold for the #1 pill. */
+      border: 1px solid transparent;
       font-family: var(--display-font);
       font-weight: 800;
       letter-spacing: 0.02em;
@@ -368,7 +372,12 @@
       white-space: nowrap;
     }
     .pool td.bettor-col:hover { color: var(--masters); text-decoration: underline; }
-    .pool td.bettor-col:focus-visible { outline: 2px solid var(--masters); outline-offset: -2px; }
+    /* Tap → modal closes → focus stays on the cell. Don't paint a loud
+       blue rectangle around the name; mirror the hover styling instead.
+       Keyboard users still see a clear indicator (color + underline)
+       without the box-shaped outline. */
+    .pool td.bettor-col:focus { outline: none; }
+    .pool td.bettor-col:focus-visible { outline: none; color: var(--masters); text-decoration: underline; }
     @media (max-width: 900px) and (orientation: portrait) {
       /* Phone portrait: switch from <table> to a flex-row layout per
          row. With table-layout:fixed and one auto column the slack
