@@ -280,15 +280,16 @@
     }
     .pool td.bettor-col:hover { color: var(--masters); text-decoration: underline; }
     .pool td.bettor-col:focus-visible { outline: 2px solid var(--masters); outline-offset: -2px; }
-    @media (max-width: 900px) {
-      /* On phones we hide the picks column entirely — tap a name to see picks
-         in the modal — and let the name column take the freed-up space. */
+    @media (max-width: 900px) and (orientation: portrait) {
+      /* On phones in PORTRAIT we hide the picks column — tap a name to see picks
+         in the modal — and let the name column take the freed-up space.
+         In landscape we have enough room to keep showing the chips. */
       .pool col.col-picks { display: none; }
       .pool thead th:nth-child(5) { display: none; }
       .pool td.picks-cell { display: none; }
       .pool col.col-name { width: auto; }
       .pool td.bettor-col::after {
-        content: " \203A"; /* ›  hint that the cell is tappable */
+        content: " \203A"; /* ›  hint that the cell is tappable for picks */
         color: var(--muted);
         font-weight: 400;
         margin-left: 0.15rem;
