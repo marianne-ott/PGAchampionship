@@ -512,14 +512,6 @@
          between cells. Move it to the row instead. */
       #poolSection tbody tr.me > td { background: transparent !important; }
       #poolSection tbody tr.me { background: var(--me-row) !important; }
-      /* Same trick for the click-to-focus highlight — paint at the row
-         level in flex layout so the navy band reaches edge-to-edge,
-         not just the cell content boxes. */
-      #poolSection tbody tr.focused > td { background: transparent !important; box-shadow: none; }
-      #poolSection tbody tr.focused {
-        background: var(--focus-row) !important;
-        box-shadow: inset 4px 0 0 var(--masters);
-      }
     }
     @media (max-width: 900px) and (orientation: landscape) {
       /* Phone in LANDSCAPE: chips are tight, so reclaim space from the
@@ -976,16 +968,21 @@
       text-decoration-thickness: 2px;
       text-underline-offset: 3px;
     }
-    /* Click-to-focus highlight — tap any cell other than the name to
-       lock a tracking band on a single row. Distinct color from leader
-       (gold), runner-up and me (both navy-tinted) so all four states
-       coexist visually. The ID-prefixed selector beats those other
-       row states when both classes apply to the same row. */
-    #poolSection tbody tr.focused > td {
-      background: var(--focus-row) !important;
-    }
-    #poolSection tbody tr.focused > td:first-child {
-      box-shadow: inset 4px 0 0 var(--masters);
+    /* Click-to-focus highlight — phone landscape only. That's where
+       the picks chips are tight enough that the eye easily slips
+       between rows; tapping any cell other than the name locks a
+       tracking band on the row. Background-only (no left bar): a bar
+       drawn via inset box-shadow stops 1px short of the row's bottom
+       edge under border-collapse, which makes the focused row look
+       slightly out of alignment with its zebra neighbours. The bg
+       tint on its own is more than visible enough at landscape chip
+       density and keeps every row edge crisp. The ID-prefixed
+       selector beats the leader/runner-up/me row backgrounds when
+       both classes apply to the same row. */
+    @media (max-width: 900px) and (orientation: landscape) {
+      #poolSection tbody tr.focused > td {
+        background: var(--focus-row) !important;
+      }
     }
     .wrap { overflow: auto; padding: 0 1rem 1rem; background: var(--surface); }
     table#grid {
@@ -2112,14 +2109,19 @@
         if (fr.ok && fr.rank === 2) tr.classList.add("runner-up");
         if (fr.name && fr.name === lastFocusedFriendName) tr.classList.add("focused");
         /* Click anywhere on the row except the name cell to lock a
-           tracking band on this row — useful in phone landscape where
-           the pick chips are tight and the eye easily slips between
-           rows. The name cell still opens the bettor modal (its own
-           click handler runs first; we ignore the bubbled-up event
-           via the bettor-col closest-check). Tapping the same row
-           again clears the band. */
+           tracking band on this row — but ONLY in phone landscape,
+           which is where the pick chips are tight enough that the
+           eye easily slips between rows. In portrait the band would
+           just be visual noise (the picks aren't even shown there
+           and the modal is the natural detail view), and on desktop
+           the rows are wide and the cursor handles tracking. The
+           name cell always opens the bettor modal — its own click
+           handler runs first, and we short-circuit here on the
+           bubbled-up event via the bettor-col closest-check.
+           Tapping the same row again clears the band. */
         tr.addEventListener("click", (e) => {
           if (e.target.closest("td.bettor-col")) return;
+          if (!window.matchMedia("(max-width: 900px) and (orientation: landscape)").matches) return;
           const wasFocused = tr.classList.contains("focused");
           tb.querySelectorAll("tr.focused").forEach((other) => other.classList.remove("focused"));
           if (wasFocused) {
