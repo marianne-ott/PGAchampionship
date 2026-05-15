@@ -2205,8 +2205,13 @@
           } else {
             const lab = (p.matched && p.matched !== p.pick) ? p.matched : p.pick;
             const cls = p.counts ? "count" : "drop";
+            const pos = String(p.position || "");
             const pts = String(p.points);
-            const tip = escapeHtml(lab + " " + String(p.position) + " → " + pts + " pts");
+            // Show the actual leaderboard position on the chip; the
+            // tooltip explains how it maps to scoring points (which are
+            // capped at cut_points so a deep-field pick can't dwarf a CUT).
+            // Total math elsewhere still uses p.points.
+            const tip = escapeHtml(lab + " " + pos + " → " + pts + " pts");
             inner =
               "<span class='pick-chip " +
               cls +
@@ -2216,7 +2221,7 @@
               "<span class='chip-name-full'>" + escapeHtml(lab) + "</span>" +
               "<span class='chip-name-last'>" + escapeHtml(lastWordOf(lab)) + "</span>" +
               "<span class='chip-pts-sep'> </span>" +
-              "<span class='chip-pts'>" + escapeHtml(pts) + "</span>" +
+              "<span class='chip-pts'>" + escapeHtml(pos) + "</span>" +
               "</span>";
           }
           const doneFlag =
