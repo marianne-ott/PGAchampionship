@@ -343,12 +343,11 @@
        leader / runner-up / focused / me rows. Same idea on each of
        the other td-level row-tint rules below. */
     .pool tr.leader td { color: var(--masters-dark); background-color: var(--leader-row) !important; }
-    /* Leader gets a bigger rank digit for visual prominence. Row 1 still
-       lines up with rows 2..N because every rank pill has a fixed
-       border-box height (see .pool td.rank-col span.rank-pill below) and
-       the pick-slot's min-height matches it. The bigger digit just renders
-       inside the same-size pill; it never stretches the row. */
-    .pool tr.leader td.rank-col { font-size: 1.55rem; }
+    /* Leader emphasis: gold row tint + gold rank pill + gold trophy.
+       All rank digits share the same font-size so every bettor row
+       resolves to the same height — the "1" reads as #1 thanks to the
+       gold pill background and trophy, not from being typographically
+       larger than the others. */
     .pool tr.runner-up td { background-color: #eaf0fa !important; color: var(--text); }
     .pool tr.runner-up td.rank-col { color: var(--masters); }
     .pool td.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -359,11 +358,6 @@
       font-variant-numeric: tabular-nums;
       color: var(--masters);
       letter-spacing: -0.02em;
-      /* Tight line-height on the cell itself so the strut (font-size ×
-         line-height) can never exceed the pill's fixed 2.4rem height.
-         Without this the leader's 1.55rem font would create a 2.25rem+
-         strut and stretch row 1 past the pill. */
-      line-height: 1;
     }
     .pool td.rank-col:not(.rank-col--empty) {
       display: flex;
@@ -413,15 +407,6 @@
       align-items: center;
       justify-content: center;
       min-width: 2.35rem;
-      /* Fixed pill height + border-box so every rank pill renders at
-         exactly the same size, regardless of the digit's font-size.
-         Without this, the leader's 1.55rem digit plus Barlow Condensed's
-         ascent/descent makes the leader pill ~0.4rem taller than the
-         others and stretches row 1. The picks-cell slot below matches
-         this height so the picks grid never "wins" by a fraction of a
-         pixel either — rows resolve to one identical height. */
-      height: 2.4rem;
-      box-sizing: border-box;
       padding: 0.2rem 0.45rem;
       border-radius: 4px;
       line-height: 1;
@@ -872,9 +857,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      /* Matches the rank pill's fixed height (2.4rem) so the picks-cell
-         and rank-col cells resolve to the same row height in every row. */
-      min-height: 2.4rem;
+      min-height: 2.1rem;
     }
     .pick-done-flag {
       position: absolute;
