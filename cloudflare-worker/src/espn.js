@@ -137,11 +137,18 @@ export function extractPlayerRows(raw, cutPoints, positionPoints) {
   return rows;
 }
 
-/* Pick the (today-score, thru) cells for the display table. Matches the
- * convention pgac_poll uses: when a round is in progress show that round's
- * relative-to-par score and the current hole; when it's complete show "F";
- * between rounds carry the last completed round forward so the cell isn't
- * blank for hours; pre-tournament leaves both blank. */
+/* Pick the (today-score, thru) cells for the display table.
+ *
+ *   - Round in progress     → today's to-par, thru-hole number
+ *   - Round complete (signed)→ today's to-par, "F"
+ *   - Scheduled (between rounds or pre-tournament) → "-" plus the tee time,
+ *                              emitted as "@<ISO>" so the client formats it
+ *                              in the visitor's local timezone (matches
+ *                              ESPN's UI which shows e.g. "7:38 PM*").
+ *   - Cut/WD/DQ             → both blank
+ */
+const TEE_TIME_PREFIX = "@";
+
 function todayCells(competitor) {
   const lsByPeriod = linescoresByPeriod(competitor);
   const status = competitor.status || {};
@@ -159,15 +166,7 @@ function todayCells(competitor) {
     return [String(currentLs.displayValue || ""), "F"];
   }
   if (statusType === STATUS_SCHEDULED) {
-    // Between rounds: look back for the most recent round the player did
-    // complete, so the table doesn't blank out for hours during the break.
-    for (let p = period - 1; p >= 1; p--) {
-      const prev = lsByPeriod.get(p);
-      if (prev && typeof prev.value === "number") {
-        return [String(prev.displayValue || ""), "F"];
-      }
-    }
-    return ["", ""]; // pre-tournament
+    return ["-", status.teeTime ? TEE_TIME_PREFIX + status.teeTime : ""];
   }
   if (NON_PLAYING_STATUSES.has(statusType)) {
     return ["", ""];

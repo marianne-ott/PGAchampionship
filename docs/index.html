@@ -1662,6 +1662,28 @@
       return "Europe/Oslo";
     }
 
+    /* Leaderboard cells are mostly literal strings, but the worker encodes
+       tee times for scheduled players as "@<ISO timestamp>" so the THRU
+       column can render them in the visitor's local timezone — matching
+       ESPN's UI which shows e.g. "7:38 PM*" instead of "F" for players
+       waiting to tee off. Non-prefixed cells fall through unchanged. */
+    function formatLeaderboardCell(cell) {
+      const s = String(cell == null ? "" : cell);
+      if (s.length < 2 || s.charCodeAt(0) !== 64 /* '@' */) return s;
+      const d = new Date(s.slice(1));
+      if (Number.isNaN(d.getTime())) return s;
+      try {
+        return new Intl.DateTimeFormat(localeTag(), {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          timeZone: getDisplayTimeZone(),
+        }).format(d);
+      } catch (e) {
+        return s.slice(1);
+      }
+    }
+
     function parseFetchedAt(s) {
       if (!s) return null;
       // New format: ISO 8601 with explicit Z or numeric offset.
@@ -1894,7 +1916,7 @@
         const tr = document.createElement("tr");
         row.forEach((cell) => {
           const td = document.createElement("td");
-          td.textContent = cell;
+          td.textContent = formatLeaderboardCell(cell);
           tr.appendChild(td);
         });
         bd.appendChild(tr);
