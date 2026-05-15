@@ -1060,21 +1060,20 @@
       text-decoration-thickness: 2px;
       text-underline-offset: 3px;
     }
-    /* Click-to-focus highlight — phone landscape only. That's where
-       the picks chips are tight enough that the eye easily slips
-       between rows; tapping any cell other than the name locks a
-       tracking band on the row. Background-only (no left bar): a bar
-       drawn via inset box-shadow stops 1px short of the row's bottom
-       edge under border-collapse, which makes the focused row look
-       slightly out of alignment with its zebra neighbours. The bg
-       tint on its own is more than visible enough at landscape chip
-       density and keeps every row edge crisp. The ID-prefixed
-       selector beats the leader/runner-up/me row backgrounds when
-       both classes apply to the same row. */
-    @media (max-width: 900px) and (orientation: landscape) {
-      #poolSection tbody tr.focused > td {
-        background: var(--focus-row) !important;
-      }
+    /* Click-to-focus highlight — applied on desktop and phone landscape
+       (both views show the chip grid where it's easy for the eye to slip
+       between rows). The JS handler skips adding `.focused` on phone
+       portrait, where picks are hidden and the bettor modal is the
+       natural detail surface, so this rule effectively only paints
+       where it adds value. Background-only (no left bar): a bar drawn
+       via inset box-shadow stops 1px short of the row's bottom edge
+       under border-collapse, which makes the focused row look slightly
+       out of alignment with its zebra neighbours. The bg tint on its
+       own is more than visible enough and keeps every row edge crisp.
+       The ID-prefixed selector beats the leader/runner-up/me row
+       backgrounds when both classes apply to the same row. */
+    #poolSection tbody tr.focused > td {
+      background: var(--focus-row) !important;
     }
     .wrap { overflow: auto; padding: 0 1rem 1rem; background: var(--surface); }
     table#grid {
@@ -1426,10 +1425,10 @@
     let leaderboardPlayers = [];
     let currentPlayerSelection = null;
     /* Friend name of the currently click-focused pool row, or null.
-       Survives renderPool re-runs (every 3 min during the burst, every
-       5 min otherwise, plus on language switch) so the user's row
-       tracking band doesn't disappear under them. Session-only on
-       purpose — no localStorage. */
+       Survives renderPool re-runs (every ~30s when the worker is up,
+       every ~5min on the static-only fallback path, plus on language
+       switch) so the user's row tracking band doesn't disappear under
+       them. Session-only on purpose — no localStorage. */
     let lastFocusedFriendName = null;
 
     /* ----- i18n -------------------------------------------------------- */
@@ -2197,19 +2196,17 @@
         if (fr.ok && fr.rank === 2) tr.classList.add("runner-up");
         if (fr.name && fr.name === lastFocusedFriendName) tr.classList.add("focused");
         /* Click anywhere on the row except the name cell to lock a
-           tracking band on this row — but ONLY in phone landscape,
-           which is where the pick chips are tight enough that the
-           eye easily slips between rows. In portrait the band would
-           just be visual noise (the picks aren't even shown there
-           and the modal is the natural detail view), and on desktop
-           the rows are wide and the cursor handles tracking. The
-           name cell always opens the bettor modal — its own click
+           tracking band on this row. Enabled on desktop and phone
+           landscape — both views show the pick chips and benefit from
+           a horizontal tracker. Skipped on phone portrait, where picks
+           are hidden and the bettor modal is the natural detail view.
+           The name cell always opens the bettor modal — its own click
            handler runs first, and we short-circuit here on the
            bubbled-up event via the bettor-col closest-check.
            Tapping the same row again clears the band. */
         tr.addEventListener("click", (e) => {
           if (e.target.closest("td.bettor-col")) return;
-          if (!window.matchMedia("(max-width: 900px) and (orientation: landscape)").matches) return;
+          if (window.matchMedia("(max-width: 900px) and (orientation: portrait)").matches) return;
           const wasFocused = tr.classList.contains("focused");
           tb.querySelectorAll("tr.focused").forEach((other) => other.classList.remove("focused"));
           if (wasFocused) {
