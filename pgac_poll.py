@@ -121,10 +121,18 @@ def _display_name(row: dict[str, Any]) -> str:
 
 
 def position_points(position_display: str, *, cut_points: int = 75) -> tuple[int, bool]:
-    """Listed place → points; CUT → cut_points; unstarted → cut_points.
+    """Listed place → min(place, cut_points); CUT → cut_points; unstarted → cut_points.
 
-    Mirrors `masters_poll.pga_position_points` so the pool scoring behaves
-    identically regardless of source. Returns (points, missed_cut).
+    Anyone outside the cut tier (e.g. T117) is capped at `cut_points` — a
+    pick that finished the tournament shouldn't score worse than a missed-cut
+    pick. CUT and unstarted picks also score `cut_points` so a card full of
+    not-yet-started picks doesn't trivially "win" the pool. The `missed_cut`
+    flag is True only for an actual CUT line, so the tier-drop rule only
+    triggers in that case.
+
+    Mirrors `cloudflare-worker/src/scoring.js#positionPoints` and
+    `masters_poll.pga_position_points` — keep them in lock-step.
+    Returns (points, missed_cut).
     """
     raw = (position_display or "").strip().upper()
     if not raw or raw in {"-", "\u2010", "\u2013", "\u2014", "--"}:
@@ -133,7 +141,7 @@ def position_points(position_display: str, *, cut_points: int = 75) -> tuple[int
         return cut_points, True
     num = raw[1:] if raw.startswith("T") else raw
     try:
-        return int(num), False
+        return min(int(num), cut_points), False
     except ValueError as e:
         raise ValueError(f"Unrecognized position {position_display!r}") from e
 

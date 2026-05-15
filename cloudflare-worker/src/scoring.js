@@ -26,10 +26,20 @@ function normalizePlayerName(name) {
   return out.toLowerCase().split(/\s+/).filter(Boolean).join(" ");
 }
 
-/* Parse a position display string into (points, missedCut). Mirrors
- * pga_position_points in masters_poll / pgac_poll: numeric → that number,
- * "T49" → 49, "CUT" → cut_points (and missedCut=true), blank/dash → cut_points
- * (so unstarted picks don't trivially "win" the pool). */
+/* Parse a position display string into (points, missedCut).
+ *
+ *   "T49"   → 49
+ *   "117"   → min(117, cutPoints)   ← anyone outside the cut-tier still
+ *                                     scores no worse than a missed-cut
+ *                                     pick (Hovland T117 would otherwise
+ *                                     dwarf the legitimate 75-point CUT).
+ *   "CUT"   → cutPoints (missedCut=true)
+ *   blank   → cutPoints              ← so unstarted picks don't trivially
+ *                                     "win" the pool.
+ *
+ * Mirrors pga_position_points in pgac_poll.py / masters_poll.py — keep
+ * them in lock-step.
+ */
 export function positionPoints(positionDisplay, cutPoints) {
   const raw = (positionDisplay == null ? "" : String(positionDisplay)).trim().toUpperCase();
   const BLANK = new Set(["", "-", "\u2010", "\u2013", "\u2014", "--"]);
@@ -40,7 +50,7 @@ export function positionPoints(positionDisplay, cutPoints) {
   if (!Number.isFinite(n)) {
     throw new Error(`Unrecognized position ${JSON.stringify(positionDisplay)}`);
   }
-  return { points: n, missedCut: false };
+  return { points: Math.min(n, cutPoints), missedCut: false };
 }
 
 function buildPlayerIndex(rows) {

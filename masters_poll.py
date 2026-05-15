@@ -162,12 +162,15 @@ def pga_done_final_round(sd: dict[str, Any], final_round: int) -> bool:
 
 
 def pga_position_points(position_display: str, *, cut_points: int = 75) -> tuple[int, bool]:
-    """Listed place → points; CUT (missed cut) → cut_points. Returns (points, missed_cut).
+    """Listed place → min(place, cut_points); CUT → cut_points. Returns (points, missed_cut).
 
-    A blank/dashed position (player has not teed off yet — common during R1
-    or for the late wave) is treated as `cut_points` rather than 0; otherwise
+    Anyone outside the cut tier (e.g. T117) is capped at `cut_points` so a
+    pick that finished the tournament can't score worse than a missed-cut
+    pick. A blank/dashed position (player has not teed off yet — common
+    during R1 or for the late wave) is also treated as `cut_points`; otherwise
     a card stuffed with not-yet-started picks would trivially "win" the pool.
-    The `missed_cut` flag stays False so it doesn't trigger the tier-drop rule.
+    The `missed_cut` flag stays False outside actual CUT lines so the
+    tier-drop rule only triggers when the player really missed the cut.
     """
     raw = (position_display or "").strip().upper()
     if not raw or raw in {"-", "\u2010", "\u2013", "\u2014", "--"}:
@@ -176,7 +179,7 @@ def pga_position_points(position_display: str, *, cut_points: int = 75) -> tuple
         return cut_points, True
     num = raw[1:] if raw.startswith("T") else raw
     try:
-        return int(num), False
+        return min(int(num), cut_points), False
     except ValueError as e:
         raise ValueError(f"Unrecognized position {position_display!r}") from e
 
