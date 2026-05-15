@@ -339,7 +339,12 @@
     .pool tbody tr:nth-child(even) { background: var(--row-alt); }
     .pool tbody tr:nth-child(odd) { background: var(--surface); }
     .pool tr.leader td { color: var(--masters-dark); background: var(--leader-row) !important; }
-    .pool tr.leader td.rank-col { font-size: 1.55rem; }
+    /* Keep the leader's rank cell the same font-size as everyone else's,
+       so row 1's height matches rows 2..N. The gold pill background +
+       leader-row tint + trophy already mark the winner visually; bumping
+       the digit on top of all that made row 1 a few pixels taller than
+       its neighbours, which broke the alignment of the pick-grid column
+       dividers running down the table. */
     .pool tr.runner-up td { background: #eaf0fa !important; color: var(--text); }
     .pool tr.runner-up td.rank-col { color: var(--masters); }
     .pool td.num { text-align: right; font-variant-numeric: tabular-nums; }
