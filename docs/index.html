@@ -1319,7 +1319,6 @@
         couldNotLoad: "Kunne ikke laste data.json. Prøv igjen om litt.",
         noPoolData: "Ingen pool-data.",
         noPoolFile: "Ingen pool-fil.",
-        poolNeedsPga: "Pool krever standard PGA-leaderboard-URL (pgatour.com).",
         poolError: "Pool-feil",
         lookUpNamePlaceholder: "søk etter navn",
         lookUpNameLabel: "Søk etter navn",
@@ -1377,7 +1376,6 @@
         couldNotLoad: "Could not load data.json. Try again in a moment.",
         noPoolData: "No pool data.",
         noPoolFile: "No pool file.",
-        poolNeedsPga: "Pool needs the default PGA leaderboard URL (pgatour.com).",
         poolError: "Pool error",
         lookUpNamePlaceholder: "look up name",
         lookUpNameLabel: "Look up name",
@@ -1973,12 +1971,6 @@
       }
       if (!st.ok) {
         body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(st.error || t("poolError")) + "</p>";
-        return;
-      }
-
-      const isPga = (lb.source || "").indexOf("pgatour.com") !== -1;
-      if (!isPga) {
-        body.innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(t("poolNeedsPga")) + "</p>";
         return;
       }
 
