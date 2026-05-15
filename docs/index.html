@@ -3,6 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Live data feed served by the Cloudflare Worker in cloudflare-worker/.
+       Set `content` to the deployed worker URL (e.g.
+       `https://pga-refresh-worker.<your-subdomain>.workers.dev`) after
+       running `wrangler deploy`. When empty, the page falls back to the
+       static ./data.json that build_static.py writes every 5 min via
+       GitHub Actions — same data, slower refresh. -->
+  <meta name="pga-worker-url" content="https://pga-refresh-worker.marianne-ott.workers.dev" />
   <title>PGA Championship 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -102,6 +109,53 @@
       color: rgba(255, 255, 255, 0.55);
       font-style: italic;
       letter-spacing: 0;
+    }
+    /* Header "Update now" button — quieter than the gold CTA in the body,
+       still clearly tappable. Used to force-bypass the worker's edge cache
+       and trigger an immediate fetch. */
+    .refresh-btn {
+      padding: 0.4rem 0.85rem;
+      border: 1px solid rgba(255, 199, 44, 0.6);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-family: var(--display-font);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: none;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .refresh-btn:hover:not(:disabled) {
+      background: var(--pga-gold);
+      border-color: var(--pga-gold-dark);
+      color: var(--masters-dark);
+    }
+    .refresh-btn:disabled {
+      opacity: 0.55;
+      cursor: progress;
+    }
+    .refresh-btn::before {
+      content: "";
+      display: inline-block;
+      width: 0.7rem;
+      height: 0.7rem;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      animation: refreshSpin 0.9s linear infinite;
+    }
+    .refresh-btn.is-loading::before { opacity: 1; }
+    @keyframes refreshSpin { to { transform: rotate(360deg); } }
+    @media (max-width: 600px) {
+      .refresh-btn { padding: 0.32rem 0.6rem; font-size: 0.7rem; }
     }
     @media (max-width: 600px) {
       .reload-countdown { font-size: 0.78rem; text-align: left; }
@@ -1242,6 +1296,12 @@
     <h1><span class="h1-accent">PGA</span> Championship 2026</h1>
     <div class="toolbar">
       <p id="reloadCountdown" class="reload-countdown" aria-live="polite"></p>
+      <button type="button" id="forceReload" class="refresh-btn"
+              data-i18n="btnUpdateNow"
+              data-i18n-title="btnUpdateNowTitle"
+              data-i18n-aria="btnUpdateNowTitle"
+              title="Fetch the latest scores right now"
+              aria-label="Fetch the latest scores right now">Update now</button>
       <div class="lang-toggle" role="group" data-i18n-aria="languageGroup" aria-label="Language">
         <button type="button" class="lang-btn" data-lang="no" aria-pressed="true" data-i18n-title="switchToNorwegian" data-i18n-aria="switchToNorwegian" title="Bytt til norsk" aria-label="Bytt til norsk"><span class="lang-flag" aria-hidden="true">🇳🇴</span></button>
         <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" data-i18n-title="switchToEnglish" data-i18n-aria="switchToEnglish" title="Switch to English" aria-label="Switch to English"><span class="lang-flag" aria-hidden="true">🇬🇧</span></button>
@@ -1365,8 +1425,10 @@
         tapForPicks: (name) => name + " — trykk for å se alle valg",
         totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
         lastUpdated: "Sist oppdatert",
-        cadenceTournament: "Oppdateres hvert 3. minutt",
+        cadenceTournament: "Oppdateres hvert minutt",
         cadencePost: "Oppdateres ca. hvert 5. minutt",
+        btnUpdateNow: "Oppdater",
+        btnUpdateNowTitle: "Hent siste data nå",
         source: "Kilde",
         trophyGoldTitle: "1. plass — toppgevinst",
         trophyGoldAria: "1. plass, toppgevinst",
@@ -1422,8 +1484,10 @@
         tapForPicks: (name) => name + " — tap for full pick list",
         totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
         lastUpdated: "Last updated",
-        cadenceTournament: "Updates every 3 min",
+        cadenceTournament: "Updates every minute",
         cadencePost: "Updates roughly every 5 min",
+        btnUpdateNow: "Update now",
+        btnUpdateNowTitle: "Fetch the latest scores right now",
         source: "Source",
         trophyGoldTitle: "1st place — top prize",
         trophyGoldAria: "1st place, top prize",
@@ -1663,64 +1727,49 @@
     }
     initBettorDialog();
 
-    /* The data file is rebuilt by a GitHub Actions workflow. During the
-       tournament burst, a Cloudflare Worker fires `workflow_dispatch`
-       every 3 minutes (see cloudflare-worker/); after the burst the
-       worker stops and only the baseline 5-minute GH cron in deploy.yml
-       runs. The browser never triggers a rebuild — it just polls the
-       static JSON whenever it might have changed, busy-polling briefly
-       when a fresh build is expected to have landed. */
+    /* Live data path. The browser fetches a combined leaderboard+pool JSON
+       from one of two sources, in priority order:
+         1. The Cloudflare Worker (cloudflare-worker/). Configured via
+            <meta name="pga-worker-url" content="…">. The worker fetches
+            ESPN's golf API + pool.json every minute, scores the pool,
+            and edge-caches the result for 60s — so we can poll often
+            and get fresh data without melting anyone's API budget.
+         2. Static ./data.json from GitHub Pages. Rebuilt by the GH
+            Actions workflow every 5 min as a safety net for when the
+            worker is unreachable. Same JSON shape, slower cadence.
+       The "Update now" button forces a fresh fetch with ?force=1 (worker)
+       or a cache-busted reload (static). */
     const ONE_MIN_MS = 60 * 1000;
-    const POLL_NORMAL_MS = 30 * 1000;
-    const POLL_BUSY_MS = 10 * 1000;
-    /* GitHub's build + Pages CDN propagation takes about a minute after
-       a tick fires. Don't flag data as "stale" until that grace has
-       elapsed, otherwise we busy-poll the entire window between ticks. */
-    const BUILD_GRACE_MS = 60 * 1000;
-    /* When the Cloudflare Worker stops dispatching tournament-cadence
-       builds and we drop back to the GH-Actions 5-min baseline. Must
-       match CUTOFF_UTC in cloudflare-worker/src/index.js. */
-    const TOURNAMENT_BURST_END_MS = Date.UTC(2026, 4 /* May */, 20, 0, 0, 0);
-    /* Minutes between rebuild ticks during the burst — must match the
-       cron in cloudflare-worker/wrangler.toml. */
-    const BURST_TICK_MIN = 3;
+    /* Worker mode: refresh every 30s. The worker serves a 60s-cached
+       response, so the worst-case staleness is ~90s. Static mode falls
+       back to the GH-Actions 5-min cadence and polls less aggressively. */
+    const POLL_WORKER_MS = 30 * 1000;
+    const POLL_STATIC_MS = 60 * 1000;
     let autoReloadTimer = null;
     let fetchInFlight = false;
+    /* Computed at startup from <meta name="pga-worker-url">. Empty string
+       = no worker configured, fall back to static. */
+    const WORKER_URL = (function () {
+      const m = document.querySelector('meta[name="pga-worker-url"]');
+      const raw = m ? (m.getAttribute("content") || "") : "";
+      return raw.trim().replace(/\/+$/, "");
+    })();
 
-    function inTournamentBurst() {
-      return Date.now() < TOURNAMENT_BURST_END_MS;
+    function workerConfigured() {
+      return WORKER_URL.length > 0;
     }
 
-    /* Timestamp of the most recent rebuild tick we expect to have fired.
-       During the burst the worker fires every BURST_TICK_MIN minutes (on
-       :00, :03, :06, …); post-burst only the baseline `0-59/5` GH cron
-       runs (on :00, :05, :10, …). */
-    function lastCronTickMs() {
-      const now = new Date();
-      const startOfThisMinuteMs =
-        now.getTime() - now.getUTCSeconds() * 1000 - now.getUTCMilliseconds();
-      const step = inTournamentBurst() ? BURST_TICK_MIN : 5;
-      const min = now.getUTCMinutes();
-      for (let dm = 0; dm < step; dm++) {
-        if (((min - dm + 60) % 60) % step === 0) {
-          return startOfThisMinuteMs - dm * ONE_MIN_MS;
-        }
+    /* Endpoint for the next fetch. Worker URL when configured, static
+       file otherwise. Each invocation appends a cache-busting query
+       string; `force` upgrades to the worker's `?force=1` bypass. */
+    function dataEndpoint({ force = false } = {}) {
+      if (workerConfigured()) {
+        const params = new URLSearchParams();
+        params.set("_", String(Date.now()));
+        if (force) params.set("force", "1");
+        return WORKER_URL + "/data.json?" + params.toString();
       }
-      return startOfThisMinuteMs;
-    }
-
-    /* True if the most recent expected cron tick fired more than
-       BUILD_GRACE_MS ago and our data is still older than that tick —
-       i.e. the new file should exist on the CDN by now. Used purely
-       to drive how often we poll for new data.json; not surfaced in
-       the UI. */
-    function isAwaitingNewBuild() {
-      if (!lastFetchedAtRaw) return false;
-      const dataTimeMs = new Date(lastFetchedAtRaw).getTime();
-      if (isNaN(dataTimeMs)) return false;
-      const tickMs = lastCronTickMs();
-      if (Date.now() - tickMs < BUILD_GRACE_MS) return false;
-      return dataTimeMs < tickMs;
+      return "./data.json?_=" + Date.now();
     }
 
     function cancelAutoReload() {
@@ -1732,7 +1781,7 @@
 
     function scheduleNextAutoReload() {
       cancelAutoReload();
-      const delay = isAwaitingNewBuild() ? POLL_BUSY_MS : POLL_NORMAL_MS;
+      const delay = workerConfigured() ? POLL_WORKER_MS : POLL_STATIC_MS;
       autoReloadTimer = setTimeout(() => {
         autoReloadTimer = null;
         load();
@@ -1745,7 +1794,7 @@
       if (!lastFetchedAtRaw) { el.innerHTML = ""; return; }
       const shortTime = formatFetchedAtShort(lastFetchedAtRaw);
       const fullTime = formatFetchedAtFull(lastFetchedAtRaw);
-      const cadenceKey = inTournamentBurst() ? "cadenceTournament" : "cadencePost";
+      const cadenceKey = workerConfigured() ? "cadenceTournament" : "cadencePost";
       el.innerHTML =
         escapeHtml(t("lastUpdated")) + " <strong title=\"" + escapeHtml(fullTime) + "\">" +
         escapeHtml(shortTime) + "</strong>" +
@@ -2400,41 +2449,83 @@
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
 
-    async function load() {
+    /* Single attempt against `url`, returning the parsed bundle on success
+       and throwing on HTTP or app errors. Kept separate from load() so the
+       worker→static fallback path stays readable. */
+    async function fetchBundle(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const bundle = await res.json();
+      if (bundle.error) throw new Error(bundle.error);
+      return bundle;
+    }
+
+    async function load({ force = false } = {}) {
       const seq = ++loadSeq;
       cancelAutoReload();
       fetchInFlight = true;
+      const btn = $("forceReload");
+      if (btn) {
+        btn.disabled = true;
+        if (force) btn.classList.add("is-loading");
+      }
       /* Don't swap the meta line to "Fetching…" on every poll — most
          polls return the same snapshot, and the placeholder swap is what
          makes the header look like it's reloading every few seconds.
          Only fall back to a status string if the load actually fails. */
       showError("");
+      let bundle = null;
+      let lastErr = null;
       try {
-        const res = await fetch("./data.json?_=" + Date.now(), { cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const bundle = await res.json();
-        if (seq !== loadSeq) return;
-        if (bundle.error) throw new Error(bundle.error);
+        bundle = await fetchBundle(dataEndpoint({ force }));
+      } catch (e) {
+        lastErr = e;
+        if (workerConfigured()) {
+          /* Worker unreachable — fall through to the static ./data.json
+             that GH Actions writes every 5 min so we still show *something*
+             even when the worker (or the user's network connection to
+             workers.dev) is down. */
+          try {
+            bundle = await fetchBundle("./data.json?_=" + Date.now());
+            lastErr = null;
+          } catch (e2) {
+            lastErr = e2;
+          }
+        }
+      }
+      if (seq !== loadSeq) return;
+      if (bundle && !lastErr) {
         const newFetchedAt = (bundle.leaderboard && bundle.leaderboard.fetchedAt) || null;
         const snapshotUnchanged = lastBundle && newFetchedAt && newFetchedAt === lastFetchedAtRaw;
         lastBundle = bundle;
-        if (!snapshotUnchanged) {
+        if (!snapshotUnchanged || force) {
           lastFetchedAtRaw = newFetchedAt;
           renderLeaderboard(bundle.leaderboard);
           renderPool(bundle.pool, bundle.leaderboard);
           updateReloadCountdownDisplay();
         }
-      } catch (e) {
-        if (seq !== loadSeq) return;
-        showError(e.message || String(e));
+      } else if (lastErr) {
+        showError(lastErr.message || String(lastErr));
         $("meta").textContent = t("requestFailed");
         $("poolBody").innerHTML = "<p class='error' style='margin:0'>" + escapeHtml(t("couldNotLoad")) + "</p>";
-      } finally {
-        if (seq === loadSeq) {
-          fetchInFlight = false;
-          scheduleNextAutoReload();
-        }
       }
+      if (seq === loadSeq) {
+        fetchInFlight = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove("is-loading");
+        }
+        scheduleNextAutoReload();
+      }
+    }
+
+    function initForceReload() {
+      const btn = $("forceReload");
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        if (fetchInFlight) return;
+        load({ force: true });
+      });
     }
 
     function initTabs() {
@@ -2456,6 +2547,7 @@
     }
     initTabs();
     initPlayerSearch();
+    initForceReload();
 
     document.documentElement.lang = currentLang === "no" ? "nb" : "en";
     applyStaticI18n();

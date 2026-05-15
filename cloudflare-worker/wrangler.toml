@@ -5,21 +5,23 @@ main = "src/index.js"
 compatibility_date = "2025-09-23"
 
 # Cron triggers fire `scheduled()` in src/index.js.
-# Free tier minimum interval is 1 minute. We deliberately stay above
-# that: every-minute dispatches push us well past GitHub Pages' soft
-# ~10-deploys/hour cap, at which point Pages still reports each
-# deploy as `success` over the REST API but silently stops actually
-# publishing new content (the live `data.json` freezes on the last
-# artifact that slipped through). Every-3-minute keeps us at 20/hr
-# from the worker, which combined with the 5-min baseline cron in
-# deploy.yml (12/hr) stays at ~32/hr peak — comfortably within the
-# range that historically published reliably.
+# Free tier minimum interval is 1 minute. The worker now serves data
+# directly (ESPN → worker → browser) instead of nudging GitHub Pages
+# to rebuild, so the every-3-minute Pages-rate-limit-imposed ceiling
+# no longer applies — each tick just refreshes the worker's own edge
+# cache, which is unmetered.
 [triggers]
-crons = ["*/3 * * * *"]
+crons = ["* * * * *"]
 
-# Secrets are intentionally NOT defined here. Set them after deploy:
-#   wrangler secret put GITHUB_TOKEN     ← required
-#   wrangler secret put TRIGGER_SECRET   ← optional (for /trigger HTTP)
+# Secrets are intentionally NOT defined here. Set them after deploy if
+# needed — none are required for the current ESPN-based data path:
+#   wrangler secret put POOL_CONFIG_URL  ← optional override; default
+#                                          fetches pool.json from the
+#                                          public raw GitHub URL.
+#
+# The previous workflow_dispatch path required GITHUB_TOKEN; we no
+# longer dispatch GH Actions from here, so that secret can be deleted
+# from the deployed worker (`wrangler secret delete GITHUB_TOKEN`).
 #
 # Anything in this file is committed to git; secrets must NEVER be.
 

@@ -1,49 +1,52 @@
 # pga-refresh-worker
 
-A tiny Cloudflare Worker that POSTs `workflow_dispatch` to this repo
-**every 3 minutes**. It exists because GitHub Actions' own cron
-scheduler is unreliable on the free tier (during busy hours it
-consolidates short schedules into bursts that fire roughly once an
-hour). Cloudflare's cron is much more reliable, so we let it pull the
-trigger.
+Cloudflare Worker that **serves the live PGA Championship dashboard JSON**.
 
-The cadence is deliberately not faster than 3 min: at every-minute
-dispatches the combined deploy rate (worker + baseline GH cron) overran
-GitHub Pages' soft ~10-deploys/hour publish cap, at which point Pages
-silently stopped publishing while still returning `success` from its
-deployments API. 3 min ⇒ 20 dispatches/hr from the worker; with the
-5-min baseline cron in `deploy.yml` (12/hr) the worst-case combined
-rate is ~32/hr, comfortably back in the range that has historically
-published reliably.
+```
+ESPN public golf API  →  this worker  →  docs/index.html in the browser
+                        (edge cache, 60s)
+```
 
-After end-of-day Tuesday 19 May UTC (`2026-05-20 00:00 UTC`) the worker
-stops dispatching automatically — GitHub's 5-minute baseline cron is
-plenty for any post-tournament wind-down.
+It owns the entire data path: every minute the worker fetches ESPN's
+leaderboard, fetches `pool.json` from this repo, scores the pool, and
+caches the combined JSON at the Cloudflare edge for 60 s. Browsers
+poll `/data.json` and always get something at most ~90 s stale.
+
+Why a worker instead of just GitHub Pages: Pages publishes are soft-
+capped at ~10/hour. Anything more aggressive than every-6-minute Pages
+deploys started silently failing — the deployments API kept reporting
+`success` while the live CDN froze on a stale artifact for hours.
+Pulling data into the worker decouples refresh-rate from publish-rate
+entirely; Pages only has to re-publish when the **HTML** changes
+(rare).
+
+The GitHub Actions cron at `*/5` still runs as a static fallback: if
+the worker is unreachable, the front-end falls back to fetching
+`./data.json` from Pages, refreshed every 5 minutes by the workflow.
 
 ---
 
-## One-time setup (~10 minutes)
+## Endpoints
+
+- `GET /data.json`        Cached for 60 s, the hot path for visitors.
+- `GET /data.json?force=1` Bypass the cache, refetch ESPN now. Wired
+                          to the **Update now** button in the UI.
+- `GET /health`           Returns `ok\n`; cheap liveness probe.
+
+Every endpoint emits CORS `Access-Control-Allow-Origin: *` so it can
+be called from `marianne-ott.github.io`.
+
+---
+
+## One-time setup (~5 minutes)
 
 You need:
 - A free Cloudflare account.
-- A GitHub fine-grained Personal Access Token (PAT).
 - `node` + `npm` installed locally.
 
-### 1. Create the GitHub PAT
+No GitHub PAT is required — the worker no longer dispatches GH Actions.
 
-1. Open <https://github.com/settings/personal-access-tokens/new>.
-2. **Token name**: `pga-refresh-worker`.
-3. **Expiration**: pick something past the tournament, e.g. 30 days.
-4. **Resource owner**: your personal account.
-5. **Repository access** → "Only select repositories" → pick
-   `marianne-ott/PGAchampionship`.
-6. **Permissions** → Repository permissions:
-   - **Actions**: `Read and write` (the only one you need).
-   - Everything else: leave as `No access`.
-7. Click "Generate token" and copy the value. It starts with
-   `github_pat_…`. You'll paste it in step 4 below.
-
-### 2. Install wrangler and log in to Cloudflare
+### 1. Install wrangler and log in to Cloudflare
 
 ```bash
 cd cloudflare-worker
@@ -51,52 +54,54 @@ npm install
 npx wrangler login   # opens a browser to authorize
 ```
 
-If you don't already have a Cloudflare account, the login flow walks
-you through creating one. No credit card required.
-
-### 3. Deploy the worker
+### 2. Deploy the worker
 
 ```bash
 npx wrangler deploy
 ```
 
-This uploads `src/index.js`, registers the `*/3 * * * *` cron trigger,
-and gives you a public URL like
-`https://pga-refresh-worker.<your-subdomain>.workers.dev`.
+This uploads `src/index.js` + its imports, registers the `* * * * *`
+cron trigger, and gives you a public URL like
 
-### 4. Set the GitHub PAT as a secret
-
-```bash
-npx wrangler secret put GITHUB_TOKEN
-# Paste the github_pat_… value when prompted, then press Enter.
+```
+https://pga-refresh-worker.<your-subdomain>.workers.dev
 ```
 
-(Optional, only if you want to manually trigger via HTTP later — see
-"Manual trigger" below.)
+Note that URL down — you'll paste it into the front-end in step 4.
+
+### 3. (Optional) Override the pool config URL
+
+The worker defaults to fetching `pool.json` from the public
+`raw.githubusercontent.com` URL of this repo's `main` branch. If you
+move the pool config to a private gist later, set:
 
 ```bash
-npx wrangler secret put TRIGGER_SECRET
-# Type any random string (used as a query-string key).
+npx wrangler secret put POOL_CONFIG_URL
+# Paste the URL when prompted (must return JSON in the same shape as pool.json).
 ```
+
+### 4. Tell the front-end about the worker
+
+Open `docs/index.html` and find:
+
+```html
+<meta name="pga-worker-url" content="" />
+```
+
+Paste your worker URL into the `content` attribute, e.g.
+
+```html
+<meta name="pga-worker-url" content="https://pga-refresh-worker.your-subdomain.workers.dev" />
+```
+
+Commit and push — GitHub Pages redeploys, and the page starts serving
+fresh data every minute via your worker.
+
+If you leave `content` empty, the page falls back to the static
+`./data.json` built by GitHub Actions every 5 minutes (still works,
+just slower).
 
 ### 5. Verify
-
-The cron starts firing on the **next** 3-minute boundary (:00, :03,
-:06, …). Within a few minutes you should see new `workflow_dispatch`
-runs:
-
-```bash
-gh run list --workflow=deploy.yml --event=workflow_dispatch --limit=10
-```
-
-You can also tail the worker logs in real time:
-
-```bash
-npx wrangler tail
-```
-
-You'll see lines like `[2026-05-14T22:14:01.123Z] dispatch ok`
-every 3 minutes.
 
 Health check from anywhere:
 
@@ -105,60 +110,92 @@ curl https://pga-refresh-worker.<your-subdomain>.workers.dev/health
 # → ok
 ```
 
----
-
-## How the dispatch flow works end-to-end
-
-```
-Cloudflare cron (*/3 * * * *)
-        │
-        │  POST /repos/marianne-ott/PGAchampionship/
-        │       actions/workflows/deploy.yml/dispatches
-        ▼
-GitHub Actions queues a workflow_dispatch run (~5-15 s)
-        │
-        ▼
-deploy.yml runs build_static.py → docs/data.json (~30-60 s)
-        │
-        ▼
-Pages deploys (~10-20 s) → CDN serves new data.json
-        │
-        ▼
-Browser polls data.json every 30 s → renders fresh standings
-```
-
-End-to-end latency: **~60-90 seconds** from cron tick to fresh data on
-the page. The page's "Last updated" timestamp is set inside
-`build_static.py` at the moment the scrape happens, so it correlates
-with the actual scores at that time — exactly what you want.
-
----
-
-## Manual trigger (optional)
-
-If you set `TRIGGER_SECRET` above, you can fire a one-off dispatch:
+Fetch the live dashboard:
 
 ```bash
-curl "https://pga-refresh-worker.<your-subdomain>.workers.dev/trigger?key=<your-secret>"
+curl -s https://pga-refresh-worker.<your-subdomain>.workers.dev/data.json | jq '.leaderboard.fetchedAt'
 ```
 
-Response is a small JSON blob saying whether the GitHub API accepted
-the dispatch.
+Tail the worker logs (cron + fetch invocations) live:
+
+```bash
+npx wrangler tail
+```
+
+---
+
+## Local validation
+
+Before deploying changes to scoring or the ESPN adapter, you can run
+the JS pipeline against live ESPN data on your laptop:
+
+```bash
+node cloudflare-worker/test-local.mjs
+```
+
+This pulls ESPN + `pool.json` and computes JS standings, then compares
+them line-by-line with the Python-built `docs/data.json`. Zero
+mismatches across the friend list = the worker will produce identical
+standings to `build_static.py`.
+
+You can also run `wrangler dev` for a real local edge runtime, though
+the test script above is usually faster:
+
+```bash
+cd cloudflare-worker
+npx wrangler dev --port 8787
+curl -s http://localhost:8787/data.json | jq '.pool.standings.friends[0]'
+```
+
+---
+
+## How the data flow works end-to-end
+
+```
+   Cloudflare cron (* * * * *)
+           │
+           │  buildDashboard()
+           ▼
+   ┌──────────────────────────────┐
+   │  fetch ESPN leaderboard       │ ◀── site.api.espn.com
+   │  fetch pool.json from GitHub  │ ◀── raw.githubusercontent.com
+   │  score the pool (scoring.js)  │
+   │  cache result for 60 s        │ ──▶ caches.default
+   └──────────────────────────────┘
+           │
+           │  Browser polls /data.json every 30 s
+           ▼
+   docs/index.html renders fresh standings
+```
+
+End-to-end latency: scores in ESPN's API → visible on the page in
+~30–90 s, depending on where in the polling cycle you arrive.
 
 ---
 
 ## Stopping or pausing
 
 - **Pause cron**: edit `wrangler.toml`, comment out the `[triggers]`
-  block, run `npx wrangler deploy`.
-- **Delete worker entirely**: `npx wrangler delete`.
-- **Pause GitHub side**: rotate the PAT (delete it on GitHub) — the
-  worker will keep firing but every dispatch will fail with 401 until
-  you remove or update the secret.
+  block, run `npx wrangler deploy`. The worker still serves on-demand
+  fetches; visitors then pay the ESPN round-trip themselves on the
+  first uncached hit of each minute.
+- **Take the worker offline entirely**: empty the
+  `<meta name="pga-worker-url" content="">` in `docs/index.html` and
+  push. The front-end falls back to the static `./data.json` built
+  every 5 min by GitHub Actions.
+- **Delete the worker**: `npx wrangler delete`.
 
 ---
 
 ## Cost
 
-$0 / month. Cloudflare Workers free tier is **100,000 requests/day**;
-this worker uses about **480/day** (one cron tick every 3 minutes).
+$0 / month. Free tier is 100,000 requests/day; this worker uses
+roughly:
+
+- ~1,440 cron invocations/day (every minute).
+- ~1 ESPN fetch per cache miss + ~1 pool fetch per 5 min.
+- Visitor fetches scale linearly but each hits the edge cache, so a
+  reasonable pool-watching audience adds at most a few thousand
+  requests/day.
+
+Total well under 5% of the daily quota.

@@ -2,7 +2,8 @@
   "name": "pga-refresh-worker",
   "version": "0.1.0",
   "private": true,
-  "description": "Cloudflare Worker that triggers the PGA leaderboard refresh workflow every 3 minutes via workflow_dispatch — works around GitHub's unreliable cron throttling.",
+  "type": "module",
+  "description": "Cloudflare Worker that serves the PGA Championship pool dashboard — fetches ESPN's golf leaderboard + pool.json, scores the pool, and serves the combined JSON every minute via edge cache.",
   "scripts": {
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
