@@ -794,27 +794,26 @@
     .pool td.poolscore.muted { font-size: 0.88rem; color: var(--muted); font-weight: 500; }
     .pool td.picks-cell { min-width: 0; color: var(--text); vertical-align: top; }
     /* Seven fixed columns = pot tiers; aligns across all bettor rows.
-       gap:0 + shared borders so the column dividers form clean, continuous
-       vertical lines from the first row of the pool table down to the
-       last. With repeat(7, 1fr) every row uses identical column widths
+       No outer frame and no background, only 1px column dividers between
+       chips. With repeat(7, 1fr) every row uses identical column widths
        (and table-layout:fixed keeps the picks-cell itself the same width
-       in every row), so the vertical lines from one row's grid line up
-       exactly with the next row's grid. */
+       in every row), so the dividers in row 1 sit at exactly the same X
+       as the dividers in row 2, row 3, etc. — clean continuous vertical
+       lines through the whole picks area. Letting the row tint show
+       through also means the leader-row gold and runner-up blue tints
+       are visible behind their picks instead of being covered by a
+       white box. */
     .pick-grid {
       display: grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 0;
       width: 100%;
-      border: 1px solid var(--border-strong);
-      border-radius: 6px;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.92);
     }
     .pick-slot {
       position: relative;
       min-width: 0;
       border: 0;
-      border-right: 1px solid var(--border);
+      border-right: 1px solid var(--border-strong);
       border-radius: 0;
       padding: 0.22rem 0.28rem;
       background: transparent;
