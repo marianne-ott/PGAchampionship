@@ -174,10 +174,14 @@ def pga_player_rows(payload: dict[str, Any], *, cut_points: int = 75) -> list[di
 
 
 def _round_total_cell(round_score: Any) -> str:
+    """Final strokes for a completed round, or "--" if the round hasn't been
+    finished yet. pgatour.com leaves `roundTotal` empty/None until the player
+    signs their card, which is exactly when ESPN's display switches from
+    "--" to the strokes total."""
     if not isinstance(round_score, dict):
-        return ""
+        return "--"
     total = round_score.get("roundTotal")
-    return str(total) if total else ""
+    return str(total) if total else "--"
 
 
 def _today_cells(row: dict[str, Any]) -> tuple[str, str]:
@@ -205,9 +209,16 @@ def _today_cells(row: dict[str, Any]) -> tuple[str, str]:
 
 
 def extract_leaderboard(payload: dict[str, Any]) -> tuple[list[str], list[list[str]], list[bool]]:
-    """Headers + rows for the display table. Column order matches `masters_poll`."""
+    """Headers + rows for the display table.
+
+    STROKES (cumulative total strokes) is intentionally omitted: until all
+    four rounds are complete it's just R1 (or R1+R2, etc.) which reads as a
+    confusing partial sum. The per-round R1..R4 columns carry the same
+    information without ambiguity. Kept in lock-step with the Cloudflare
+    worker's espn.js `leaderboardSnapshot` so both data paths emit the same
+    column set."""
     lb = _leaderboard_obj(payload)
-    headers = ["POS", "PLAYER", "TOT", "TODAY", "THRU", "R1", "R2", "R3", "R4", "STROKES"]
+    headers = ["POS", "PLAYER", "TOT", "TODAY", "THRU", "R1", "R2", "R3", "R4"]
 
     rows_in = [r for r in (lb.get("rows") or []) if r.get("__typename") == "GolferScore"]
     rows_in.sort(key=lambda r: int(r.get("sortOrder") or 0))
@@ -225,7 +236,6 @@ def extract_leaderboard(payload: dict[str, Any]) -> tuple[list[str], list[list[s
                 today_cell,
                 thru_cell,
                 *rnd_cells,
-                str(r.get("totalStrokes") or ""),
             ]
         )
         done_final.append(_is_done_final_round(r))

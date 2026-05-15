@@ -178,9 +178,61 @@ function todayCells(competitor) {
   return ["", ""];
 }
 
+/* Strokes for a completed round, or "--" if not yet finished.
+ *
+ * Two ESPN quirks to defend against:
+ *
+ *   1. Future / not-started rounds are pre-populated with `value: 0`, which
+ *      would (incorrectly) display as "0" in the R{N} column.
+ *   2. The CURRENT in-progress round's linescore carries a *partial cumulative*
+ *      stroke total (e.g. 7 thru 2 holes). That's a running score, not a
+ *      round total — running scores already live in the TODAY column.
+ *
+ * Any other case where `value > 0` we treat as a completed round, which
+ * also correctly surfaces R1/R2 for cut/WD/DQ players (their card was
+ * signed before stoppage).
+ */
+/* Parse an ESPN to-par display value into a signed integer.
+ * Returns null for blanks or placeholders ("", "-") so missing/scheduled
+ * rounds don't contribute to the cumulative total. */
+function parseToParDisplay(displayValue) {
+  if (displayValue === undefined || displayValue === null) return null;
+  const s = String(displayValue).trim();
+  if (s === "" || s === "-") return null;
+  if (/^E$/i.test(s)) return 0;
+  const n = Number.parseInt(s, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/* Running tournament-total to par.
+ *
+ * ESPN's `competitor.score.displayValue` only updates when a player signs
+ * their card for the round, so it lags behind whenever someone is mid-round.
+ * (Sungjae Im: c.score="+3" from R1, but ESPN's UI shows "+2" because R2
+ * is currently -1 thru 2.) We compute the running total by summing each
+ * linescore's `displayValue` — which includes the in-progress round's
+ * partial to-par — so the TOT column matches what ESPN displays. */
+function runningTotalToPar(competitor) {
+  let sum = 0;
+  let anyScored = false;
+  for (const ls of competitor.linescores || []) {
+    const n = parseToParDisplay(ls?.displayValue);
+    if (n === null) continue;
+    sum += n;
+    anyScored = true;
+  }
+  if (!anyScored) return "";
+  if (sum === 0) return "E";
+  return sum > 0 ? `+${sum}` : String(sum);
+}
+
 function roundTotalCell(competitor, period) {
   const ls = linescoresByPeriod(competitor).get(period);
-  if (!ls || typeof ls.value !== "number") return "";
+  if (!ls || typeof ls.value !== "number" || ls.value <= 0) return "--";
+  const status = competitor.status || {};
+  const statusType = (status.type && status.type.name) || "";
+  const currentPeriod = typeof status.period === "number" ? status.period : 0;
+  if (period === currentPeriod && statusType === STATUS_IN_PROGRESS) return "--";
   return String(Math.round(ls.value));
 }
 
@@ -200,9 +252,12 @@ export function leaderboardSnapshot(raw, { sourceUrl, fetchedAt } = {}) {
     return sa - sb;
   });
 
+  // STROKES (cumulative total strokes) is intentionally omitted: until all
+  // four rounds are complete it's just R1 (or R1+R2, etc.) and reads as
+  // confusing "0-padded" partial sums to most users. The per-round R1..R4
+  // columns convey the same information without ambiguity.
   const headers = ["POS", "PLAYER", "TOT", "TODAY", "THRU"];
   for (let r = 1; r <= ROUND_COLS; r++) headers.push(`R${r}`);
-  headers.push("STROKES");
 
   const rows = [];
   const rowDoneFinalRound = [];
@@ -210,22 +265,10 @@ export function leaderboardSnapshot(raw, { sourceUrl, fetchedAt } = {}) {
     const athlete = c.athlete || {};
     const country = countryCodeFromFlag((athlete.flag || {}).href);
     const position = displayPositionFor(c);
-    const tot = ((c.score && c.score.displayValue) || "").toString();
+    const tot = runningTotalToPar(c);
     const [today, thru] = todayCells(c);
     const rndCells = [];
     for (let r = 1; r <= ROUND_COLS; r++) rndCells.push(roundTotalCell(c, r));
-    // ESPN exposes round-by-round strokes via linescores; cumulative total
-    // strokes for the player isn't a single field, so we sum the rounds
-    // they've actually completed.
-    let totalStrokes = 0;
-    let anyComplete = false;
-    for (const ls of c.linescores || []) {
-      if (ls && typeof ls.value === "number") {
-        totalStrokes += ls.value;
-        anyComplete = true;
-      }
-    }
-    const strokesCell = anyComplete ? String(Math.round(totalStrokes)) : "";
     rows.push([
       position,
       playerCell(athlete, country),
@@ -233,7 +276,6 @@ export function leaderboardSnapshot(raw, { sourceUrl, fetchedAt } = {}) {
       today,
       thru,
       ...rndCells,
-      strokesCell,
     ]);
     rowDoneFinalRound.push(isDoneFinalRound(c));
   }
