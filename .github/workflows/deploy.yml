@@ -2,25 +2,22 @@ name: Refresh leaderboard and deploy
 
 on:
   schedule:
-    # ─── Always-on baseline ────────────────────────────────────────────
-    # Runs at minutes :00, :05, :10, … :55. 5-minute floor is the minimum
-    # GitHub Actions allows, and `schedule` events are best-effort — GH
-    # silently drops triggers when its scheduler is busy. This entry is
-    # the safety net that runs even after the tournament cutoff below.
+    # Always-on baseline: runs at minutes :00, :05, :10, … :55. 5-minute
+    # floor is the minimum GitHub Actions allows, and `schedule` events
+    # are best-effort — GH silently drops triggers when its scheduler is
+    # busy. The real cadence during the tournament comes from the
+    # Cloudflare Worker (cloudflare-worker/, every 3 min) firing
+    # workflow_dispatch; this cron is the safety net that keeps things
+    # ticking if the worker is down or after the worker's cutoff.
+    #
+    # We previously also ran a `2-59/5` tournament-burst cron in parallel
+    # for ~2-3 min cadence, and bumped the worker to every minute on top
+    # of that. Combined that pushed us to ~80 Pages deploys/hour and
+    # tripped GitHub Pages' soft ~10/hr publish cap — the API kept
+    # returning `success` but the live site froze for hours on a stale
+    # artifact. The worker-only 3-min cadence is the sustainable middle
+    # ground.
     - cron: "0-59/5 * * * *"
-    # ─── TOURNAMENT BURST ──────────────────────────────────────────────
-    # One extra cron offset by 2 minutes (:02, :07, :12, …) so combined
-    # with the baseline we target ~2-3 minutes between updates during
-    # the 2026 PGA Championship. We previously tried 5 staggered crons
-    # for ~1-min cadence, but GH's cron scheduler dropped most of them
-    # when it got busy — two crons is the sweet spot between cadence
-    # and reliability, and also stays well under GitHub Pages' build
-    # rate limit (~10 builds/hour per repo). The "Cron gate" step below
-    # short-circuits this extra cron after the cutoff (end of Tuesday
-    # 19 May 2026 UTC = 2026-05-20 00:00 UTC) so we automatically drop
-    # back to the 5-minute baseline once the post-tournament window
-    # closes.
-    - cron: "2-59/5 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -42,62 +39,28 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Cron gate (skip tournament-burst cron after cutoff)
-        id: gate
-        # The baseline cron, manual workflow_dispatch and push triggers
-        # always run. The single offset cron (`2-59/5`) only runs before
-        # the cutoff; after the cutoff it short-circuits to a tiny no-op
-        # so we don't waste Pages deploys on data that isn't changing
-        # anymore.
-        run: |
-          set -euo pipefail
-          BASE_CRON='0-59/5 * * * *'
-          # PGA Championship 2026 ends Sunday 17 May. Keep the 2-min
-          # cadence going through Monday + Tuesday for post-tournament
-          # chatter, then drop back to the 5-min baseline at midnight
-          # UTC at the end of Tuesday 19 May.
-          CUTOFF_EPOCH=$(date -u -d '2026-05-20 00:00:00 UTC' +%s)
-          NOW_EPOCH=$(date -u +%s)
-          EVT='${{ github.event_name }}'
-          SCHED='${{ github.event.schedule }}'
-          if [ "$EVT" != 'schedule' ] \
-              || [ "$SCHED" = "$BASE_CRON" ] \
-              || [ "$NOW_EPOCH" -lt "$CUTOFF_EPOCH" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Running build (event=$EVT cron='$SCHED')"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Past 2026-05-20 00:00Z cutoff — skipping tournament-burst cron '$SCHED'"
-          fi
-
       - name: Checkout
-        if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Python
-        if: steps.gate.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Build static snapshot (docs/data.json)
-        if: steps.gate.outputs.run == 'true'
-        # If pgatour.com is briefly unreachable we keep the previous committed
-        # docs/data.json so the site never goes blank.
+        # If the upstream source is briefly unreachable we keep the previous
+        # committed docs/data.json so the site never goes blank.
         run: |
           python3 build_static.py || echo "::warning::build_static.py failed; falling back to existing docs/data.json"
 
       - name: Configure Pages
-        if: steps.gate.outputs.run == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
-        if: steps.gate.outputs.run == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
       - name: Deploy to GitHub Pages
-        if: steps.gate.outputs.run == 'true'
         id: deployment
         uses: actions/deploy-pages@v4

@@ -2,10 +2,18 @@
  * pga-refresh-worker
  *
  * A tiny Cloudflare Worker whose only job is to POST a workflow_dispatch
- * to GitHub every minute during the PGA Championship 2026, so the
+ * to GitHub every 3 minutes during the PGA Championship 2026, so the
  * leaderboard refreshes at a predictable cadence even when GitHub's own
  * cron scheduler decides to consolidate scheduled events into hour-long
  * bursts.
+ *
+ * Cadence chosen empirically: at every-minute dispatches the combined
+ * worker + GH-cron deploy rate overran GitHub Pages' soft ~10/hour
+ * publish cap and Pages silently stopped publishing while still
+ * returning `success` from the deployments API. Every-3-min keeps the
+ * worker at 20 dispatches/hr, which plus the 5-min baseline cron in
+ * deploy.yml (12/hr) tops out at ~32/hr — safely back in the range
+ * that historically published reliably.
  *
  * Triggers:
  *   - scheduled(): fires on the cron defined in wrangler.toml.
@@ -23,11 +31,11 @@ const REPO = "marianne-ott/PGAchampionship";
 const WORKFLOW_FILE = "deploy.yml";
 const REF = "main";
 
-// Stop firing dispatches after this UTC instant. Mirrors the Cron-gate
-// cutoff in .github/workflows/deploy.yml so the worker also drops back
-// to "let GitHub's 5-min baseline cron handle it" after the final round.
-// Extended through end-of-day 19 May UTC so Monday + Tuesday remain on
-// the 1-minute cadence for post-tournament discussion.
+// Stop firing dispatches after this UTC instant. After the cutoff the
+// only thing rebuilding the site is the 5-min baseline cron in
+// .github/workflows/deploy.yml. Extended through end-of-day 19 May UTC
+// so Monday + Tuesday remain on the burst cadence for post-tournament
+// discussion.
 const CUTOFF_UTC = "2026-05-20T00:00:00Z";
 
 async function dispatchWorkflow(env) {

@@ -1,10 +1,20 @@
 # pga-refresh-worker
 
 A tiny Cloudflare Worker that POSTs `workflow_dispatch` to this repo
-**every minute**. It exists because GitHub Actions' own cron scheduler
-is unreliable on the free tier (during busy hours it consolidates 2-min
-schedules into bursts that fire roughly once an hour). Cloudflare's cron
-is much more reliable, so we let it pull the trigger.
+**every 3 minutes**. It exists because GitHub Actions' own cron
+scheduler is unreliable on the free tier (during busy hours it
+consolidates short schedules into bursts that fire roughly once an
+hour). Cloudflare's cron is much more reliable, so we let it pull the
+trigger.
+
+The cadence is deliberately not faster than 3 min: at every-minute
+dispatches the combined deploy rate (worker + baseline GH cron) overran
+GitHub Pages' soft ~10-deploys/hour publish cap, at which point Pages
+silently stopped publishing while still returning `success` from its
+deployments API. 3 min ⇒ 20 dispatches/hr from the worker; with the
+5-min baseline cron in `deploy.yml` (12/hr) the worst-case combined
+rate is ~32/hr, comfortably back in the range that has historically
+published reliably.
 
 After end-of-day Tuesday 19 May UTC (`2026-05-20 00:00 UTC`) the worker
 stops dispatching automatically — GitHub's 5-minute baseline cron is
@@ -50,7 +60,7 @@ you through creating one. No credit card required.
 npx wrangler deploy
 ```
 
-This uploads `src/index.js`, registers the `*/2 * * * *` cron trigger,
+This uploads `src/index.js`, registers the `*/3 * * * *` cron trigger,
 and gives you a public URL like
 `https://pga-refresh-worker.<your-subdomain>.workers.dev`.
 
@@ -71,8 +81,9 @@ npx wrangler secret put TRIGGER_SECRET
 
 ### 5. Verify
 
-The cron starts firing on the **next** minute boundary. Within a
-minute or two you should see new `workflow_dispatch` runs:
+The cron starts firing on the **next** 3-minute boundary (:00, :03,
+:06, …). Within a few minutes you should see new `workflow_dispatch`
+runs:
 
 ```bash
 gh run list --workflow=deploy.yml --event=workflow_dispatch --limit=10
@@ -85,7 +96,7 @@ npx wrangler tail
 ```
 
 You'll see lines like `[2026-05-14T22:14:01.123Z] dispatch ok`
-every minute.
+every 3 minutes.
 
 Health check from anywhere:
 
@@ -99,7 +110,7 @@ curl https://pga-refresh-worker.<your-subdomain>.workers.dev/health
 ## How the dispatch flow works end-to-end
 
 ```
-Cloudflare cron (* * * * *)
+Cloudflare cron (*/3 * * * *)
         │
         │  POST /repos/marianne-ott/PGAchampionship/
         │       actions/workflows/deploy.yml/dispatches
@@ -150,4 +161,4 @@ the dispatch.
 ## Cost
 
 $0 / month. Cloudflare Workers free tier is **100,000 requests/day**;
-this worker uses about **1,440/day** (one cron tick every minute).
+this worker uses about **480/day** (one cron tick every 3 minutes).

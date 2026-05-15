@@ -5,13 +5,17 @@ main = "src/index.js"
 compatibility_date = "2025-09-23"
 
 # Cron triggers fire `scheduled()` in src/index.js.
-# Free tier minimum interval is 1 minute. Each tick POSTs a single
-# workflow_dispatch to GitHub; the workflow's concurrency group
-# (cancel-in-progress: false) deduplicates if a previous build is
-# still running, so a slow run just causes the next dispatch to
-# replace the pending one instead of piling up.
+# Free tier minimum interval is 1 minute. We deliberately stay above
+# that: every-minute dispatches push us well past GitHub Pages' soft
+# ~10-deploys/hour cap, at which point Pages still reports each
+# deploy as `success` over the REST API but silently stops actually
+# publishing new content (the live `data.json` freezes on the last
+# artifact that slipped through). Every-3-minute keeps us at 20/hr
+# from the worker, which combined with the 5-min baseline cron in
+# deploy.yml (12/hr) stays at ~32/hr peak — comfortably within the
+# range that historically published reliably.
 [triggers]
-crons = ["* * * * *"]
+crons = ["*/3 * * * *"]
 
 # Secrets are intentionally NOT defined here. Set them after deploy:
 #   wrangler secret put GITHUB_TOKEN     ← required

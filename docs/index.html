@@ -1343,7 +1343,7 @@
         tapForPicks: (name) => name + " — trykk for å se alle valg",
         totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
         lastUpdated: "Sist oppdatert",
-        cadenceTournament: "Oppdateres hvert minutt",
+        cadenceTournament: "Oppdateres hvert 3. minutt",
         cadencePost: "Oppdateres ca. hvert 5. minutt",
         source: "Kilde",
         trophyGoldTitle: "1. plass — toppgevinst",
@@ -1401,7 +1401,7 @@
         tapForPicks: (name) => name + " — tap for full pick list",
         totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
         lastUpdated: "Last updated",
-        cadenceTournament: "Updates every minute",
+        cadenceTournament: "Updates every 3 min",
         cadencePost: "Updates roughly every 5 min",
         source: "Source",
         trophyGoldTitle: "1st place — top prize",
@@ -1644,11 +1644,11 @@
 
     /* The data file is rebuilt by a GitHub Actions workflow. During the
        tournament burst, a Cloudflare Worker fires `workflow_dispatch`
-       every minute (see cloudflare-worker/); after the burst, only the
-       baseline 5-minute GH cron in deploy.yml runs. The browser never
-       triggers a rebuild — it just polls the static JSON whenever it
-       might have changed, busy-polling briefly when a fresh build is
-       expected to have landed. */
+       every 3 minutes (see cloudflare-worker/); after the burst the
+       worker stops and only the baseline 5-minute GH cron in deploy.yml
+       runs. The browser never triggers a rebuild — it just polls the
+       static JSON whenever it might have changed, busy-polling briefly
+       when a fresh build is expected to have landed. */
     const ONE_MIN_MS = 60 * 1000;
     const POLL_NORMAL_MS = 30 * 1000;
     const POLL_BUSY_MS = 10 * 1000;
@@ -1656,11 +1656,13 @@
        a tick fires. Don't flag data as "stale" until that grace has
        elapsed, otherwise we busy-poll the entire window between ticks. */
     const BUILD_GRACE_MS = 60 * 1000;
-    /* When the Cloudflare Worker stops dispatching every-minute builds
-       and we drop back to the GH-Actions 5-min baseline. Must match the
-       cutoffs in cloudflare-worker/src/index.js and the Cron-gate step
-       in .github/workflows/deploy.yml. */
+    /* When the Cloudflare Worker stops dispatching tournament-cadence
+       builds and we drop back to the GH-Actions 5-min baseline. Must
+       match CUTOFF_UTC in cloudflare-worker/src/index.js. */
     const TOURNAMENT_BURST_END_MS = Date.UTC(2026, 4 /* May */, 20, 0, 0, 0);
+    /* Minutes between rebuild ticks during the burst — must match the
+       cron in cloudflare-worker/wrangler.toml. */
+    const BURST_TICK_MIN = 3;
     let autoReloadTimer = null;
     let fetchInFlight = false;
 
@@ -1669,18 +1671,17 @@
     }
 
     /* Timestamp of the most recent rebuild tick we expect to have fired.
-       During the burst the worker fires every minute, so any minute mark
-       counts. Post-burst only the baseline `0-59/5` GH cron runs. */
+       During the burst the worker fires every BURST_TICK_MIN minutes (on
+       :00, :03, :06, …); post-burst only the baseline `0-59/5` GH cron
+       runs (on :00, :05, :10, …). */
     function lastCronTickMs() {
       const now = new Date();
       const startOfThisMinuteMs =
         now.getTime() - now.getUTCSeconds() * 1000 - now.getUTCMilliseconds();
-      if (inTournamentBurst()) {
-        return startOfThisMinuteMs;
-      }
+      const step = inTournamentBurst() ? BURST_TICK_MIN : 5;
       const min = now.getUTCMinutes();
-      for (let dm = 0; dm < 5; dm++) {
-        if (((min - dm + 60) % 60) % 5 === 0) {
+      for (let dm = 0; dm < step; dm++) {
+        if (((min - dm + 60) % 60) % step === 0) {
           return startOfThisMinuteMs - dm * ONE_MIN_MS;
         }
       }
