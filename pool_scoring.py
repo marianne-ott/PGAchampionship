@@ -7,8 +7,6 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-import masters_poll
-
 # Fold common Scandinavian / Latin letters so Excel (ASCII) picks match PGA display names (e.g. Højgaard).
 _ASCII_FOLD = str.maketrans(
     {
@@ -52,22 +50,24 @@ def _build_player_index(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
 
 
 def compute_pool_standings(
-    next_data: dict[str, Any],
-    data_url: str,
+    player_rows: list[dict[str, Any]],
     config: dict[str, Any],
 ) -> dict[str, Any]:
-    if not masters_poll._is_pga_url(data_url):
-        return {
-            "ok": False,
-            "error": "Pool scoring only works with a pgatour.com leaderboard URL.",
-        }
+    """Score the pool against a pre-extracted list of player rows.
 
+    Source-agnostic — the caller (see `leaderboard_server.build_dashboard`)
+    picks the right adapter (pgatour `__NEXT_DATA__` vs. pgachampionship
+    GraphQL) and passes in rows already shaped like
+    `{displayName, country, position, points, missedCut, doneFinalRound}`.
+    """
+    # `cut_points` is no longer used to *compute* points here — the caller
+    # already applied it when extracting `player_rows` — but we still echo
+    # it back in the response so the frontend can render the rule text.
     cut_points = int(config.get("cut_points", 75))
     counting_picks = int(config.get("counting_picks", 5))
     picks_per = int(config.get("picks_per_friend", 7))
 
-    rows = masters_poll.pga_player_rows(next_data, cut_points=cut_points)
-    index = _build_player_index(rows)
+    index = _build_player_index(player_rows)
 
     friends_out: list[dict[str, Any]] = []
     for fr in config.get("friends", []):

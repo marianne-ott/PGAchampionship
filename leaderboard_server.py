@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import masters_poll
+import pgac_poll
 import pool_scoring
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -30,21 +31,39 @@ def _json_bytes(obj: object) -> bytes:
 
 
 def build_dashboard(url: str, pool_config_path: Path) -> dict[str, Any]:
-    """Fetch the leaderboard + compute pool standings; the same payload Pages serves."""
-    html = masters_poll.fetch_html(url)
-    next_data = masters_poll.parse_next_data(html)
-    lb = masters_poll.leaderboard_snapshot_from_next(url, next_data)
+    """Fetch the leaderboard + compute pool standings; the same payload Pages serves.
 
+    Dispatches on the URL: pgachampionship.com uses the official GraphQL
+    persisted-query endpoint (typically several minutes ahead of pgatour);
+    anything else falls back to pgatour.com's inline `__NEXT_DATA__` blob.
+    """
     pool_payload: dict[str, Any] = {
         "configPath": str(pool_config_path),
         "fileExists": pool_config_path.is_file(),
         "parseError": None,
         "standings": None,
     }
+    cfg: dict[str, Any] | None = None
     if pool_config_path.is_file():
         try:
             cfg = pool_scoring.load_pool_config(pool_config_path)
-            pool_payload["standings"] = pool_scoring.compute_pool_standings(next_data, url, cfg)
+        except Exception as e:
+            pool_payload["parseError"] = str(e)
+    cut_points = int((cfg or {}).get("cut_points", 75))
+
+    if pgac_poll.is_pgac_url(url):
+        payload = pgac_poll.fetch_leaderboard_data()
+        lb = pgac_poll.leaderboard_snapshot_from_payload(url, payload)
+        player_rows = pgac_poll.pga_player_rows(payload, cut_points=cut_points)
+    else:
+        html = masters_poll.fetch_html(url)
+        next_data = masters_poll.parse_next_data(html)
+        lb = masters_poll.leaderboard_snapshot_from_next(url, next_data)
+        player_rows = masters_poll.pga_player_rows(next_data, cut_points=cut_points)
+
+    if cfg is not None and pool_payload["parseError"] is None:
+        try:
+            pool_payload["standings"] = pool_scoring.compute_pool_standings(player_rows, cfg)
         except Exception as e:
             pool_payload["parseError"] = str(e)
     return {"leaderboard": lb, "pool": pool_payload}
@@ -104,7 +123,10 @@ def make_handler(default_url: str, pool_config_path: Path):
 
             if path == "/api/leaderboard":
                 try:
-                    snap = masters_poll.leaderboard_snapshot(url)
+                    if pgac_poll.is_pgac_url(url):
+                        snap = pgac_poll.leaderboard_snapshot(url)
+                    else:
+                        snap = masters_poll.leaderboard_snapshot(url)
                     self._send_bytes(200, "application/json; charset=utf-8", _json_bytes(snap))
                 except Exception as e:
                     self._send_bytes(500, "application/json; charset=utf-8", _json_bytes({"error": str(e)}))
@@ -119,7 +141,12 @@ def main() -> int:
     p = argparse.ArgumentParser(description="Local leaderboard viewer")
     p.add_argument("--host", default="127.0.0.1", help="Bind address")
     p.add_argument("--port", type=int, default=8765, help="Port")
-    p.add_argument("--url", default=masters_poll.DEFAULT_URL, help="Default source URL in the form")
+    p.add_argument(
+        "--url",
+        default=pgac_poll.DEFAULT_URL,
+        help="Default source URL. pgachampionship.com → official GraphQL feed; "
+        "anything else falls back to pgatour.com's __NEXT_DATA__.",
+    )
     p.add_argument(
         "--pool",
         default="pool.json",

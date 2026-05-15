@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-import masters_poll
+import pgac_poll
 from leaderboard_server import build_dashboard
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -23,7 +23,11 @@ _POOL_JSON = _SCRIPT_DIR / "pool.json"
 
 def main() -> int:
     _DOCS_DIR.mkdir(parents=True, exist_ok=True)
-    url = masters_poll.DEFAULT_URL
+    # pgachampionship.com's GraphQL feed is several minutes ahead of
+    # pgatour.com's inlined __NEXT_DATA__, so we default to it during the
+    # 2026 PGA Championship. `build_dashboard` falls back to pgatour for any
+    # non-pgachampionship URL, so passing one here is the only switch needed.
+    url = pgac_poll.DEFAULT_URL
     print(f"Fetching {url}", file=sys.stderr)
     bundle = build_dashboard(url, _POOL_JSON)
     _DATA_JSON.write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
