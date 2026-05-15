@@ -110,52 +110,53 @@
       font-style: italic;
       letter-spacing: 0;
     }
-    /* Header "Update now" button — quieter than the gold CTA in the body,
-       still clearly tappable. Used to force-bypass the worker's edge cache
-       and trigger an immediate fetch. */
+    /* Discreet circular-arrow refresh icon in the header. Visually weighs
+       about as much as the language flags so it doesn't compete with the
+       title or the "Last updated" timestamp. Pressing forces an immediate
+       fetch (bypasses the worker's 60 s edge cache); the auto-refresh
+       every minute already covers the common case, so this is purely a
+       "I want to see the latest score *right now*" affordance. */
     .refresh-btn {
-      padding: 0.4rem 0.85rem;
-      border: 1px solid rgba(255, 199, 44, 0.6);
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.22);
       border-radius: 4px;
       background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      font-family: var(--display-font);
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.85);
       cursor: pointer;
-      box-shadow: none;
-      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      justify-content: center;
+      box-shadow: none;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    }
+    .refresh-btn svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      display: block;
+      transition: transform 0.2s ease;
     }
     .refresh-btn:hover:not(:disabled) {
-      background: var(--pga-gold);
-      border-color: var(--pga-gold-dark);
-      color: var(--masters-dark);
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 199, 44, 0.6);
+      color: #fff;
+    }
+    .refresh-btn:hover:not(:disabled) svg {
+      transform: rotate(-45deg);
     }
     .refresh-btn:disabled {
       opacity: 0.55;
       cursor: progress;
     }
-    .refresh-btn::before {
-      content: "";
-      display: inline-block;
-      width: 0.7rem;
-      height: 0.7rem;
-      border: 2px solid currentColor;
-      border-right-color: transparent;
-      border-radius: 50%;
-      opacity: 0;
-      transition: opacity 0.12s ease;
+    .refresh-btn.is-loading svg {
       animation: refreshSpin 0.9s linear infinite;
+      transform: none;
     }
-    .refresh-btn.is-loading::before { opacity: 1; }
     @keyframes refreshSpin { to { transform: rotate(360deg); } }
     @media (max-width: 600px) {
-      .refresh-btn { padding: 0.32rem 0.6rem; font-size: 0.7rem; }
+      .refresh-btn { width: 1.85rem; height: 1.85rem; }
+      .refresh-btn svg { width: 1rem; height: 1rem; }
     }
     @media (max-width: 600px) {
       .reload-countdown { font-size: 0.78rem; text-align: left; }
@@ -1297,11 +1298,15 @@
     <div class="toolbar">
       <p id="reloadCountdown" class="reload-countdown" aria-live="polite"></p>
       <button type="button" id="forceReload" class="refresh-btn"
-              data-i18n="btnUpdateNow"
               data-i18n-title="btnUpdateNowTitle"
               data-i18n-aria="btnUpdateNowTitle"
               title="Fetch the latest scores right now"
-              aria-label="Fetch the latest scores right now">Update now</button>
+              aria-label="Fetch the latest scores right now">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path fill="currentColor"
+                d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 13c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 8.74A7.93 7.93 0 0 0 4 13c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+        </svg>
+      </button>
       <div class="lang-toggle" role="group" data-i18n-aria="languageGroup" aria-label="Language">
         <button type="button" class="lang-btn" data-lang="no" aria-pressed="true" data-i18n-title="switchToNorwegian" data-i18n-aria="switchToNorwegian" title="Bytt til norsk" aria-label="Bytt til norsk"><span class="lang-flag" aria-hidden="true">🇳🇴</span></button>
         <button type="button" class="lang-btn" data-lang="en" aria-pressed="false" data-i18n-title="switchToEnglish" data-i18n-aria="switchToEnglish" title="Switch to English" aria-label="Switch to English"><span class="lang-flag" aria-hidden="true">🇬🇧</span></button>
@@ -1425,10 +1430,9 @@
         tapForPicks: (name) => name + " — trykk for å se alle valg",
         totalTooltip: (cp, pp) => "Sum av de " + cp + " beste av " + pp + " valgene (lavere er bedre)",
         lastUpdated: "Sist oppdatert",
-        cadenceTournament: "Oppdateres hvert minutt",
-        cadencePost: "Oppdateres ca. hvert 5. minutt",
-        btnUpdateNow: "Oppdater",
-        btnUpdateNowTitle: "Hent siste data nå",
+        cadenceTournament: "Oppdaterer automatisk hvert minutt",
+        cadencePost: "Oppdaterer automatisk ca. hvert 5. minutt",
+        btnUpdateNowTitle: "Oppdater nå",
         source: "Kilde",
         trophyGoldTitle: "1. plass — toppgevinst",
         trophyGoldAria: "1. plass, toppgevinst",
@@ -1484,10 +1488,9 @@
         tapForPicks: (name) => name + " — tap for full pick list",
         totalTooltip: (cp, pp) => "Sum of best " + cp + " of " + pp + " picks (lower is better)",
         lastUpdated: "Last updated",
-        cadenceTournament: "Updates every minute",
-        cadencePost: "Updates roughly every 5 min",
-        btnUpdateNow: "Update now",
-        btnUpdateNowTitle: "Fetch the latest scores right now",
+        cadenceTournament: "Auto-updates every minute",
+        cadencePost: "Auto-updates roughly every 5 min",
+        btnUpdateNowTitle: "Refresh now",
         source: "Source",
         trophyGoldTitle: "1st place — top prize",
         trophyGoldAria: "1st place, top prize",
