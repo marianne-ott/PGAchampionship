@@ -24,6 +24,7 @@
       --row-alt: #f7f9fc;
       --leader-row: #fff4d0;       /* gold-tinted leader row */
       --me-row: #e6edf8;           /* navy-tinted lookup row */
+      --focus-row: #d4e3f7;        /* stronger navy tint for click-to-focus row */
       --danger: #b3261e;
       --display-font: "Barlow Condensed", "Oswald", "Arial Narrow", "Helvetica Neue Condensed", system-ui, sans-serif;
       --body-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -511,6 +512,14 @@
          between cells. Move it to the row instead. */
       #poolSection tbody tr.me > td { background: transparent !important; }
       #poolSection tbody tr.me { background: var(--me-row) !important; }
+      /* Same trick for the click-to-focus highlight — paint at the row
+         level in flex layout so the navy band reaches edge-to-edge,
+         not just the cell content boxes. */
+      #poolSection tbody tr.focused > td { background: transparent !important; box-shadow: none; }
+      #poolSection tbody tr.focused {
+        background: var(--focus-row) !important;
+        box-shadow: inset 4px 0 0 var(--masters);
+      }
     }
     @media (max-width: 900px) and (orientation: landscape) {
       /* Phone in LANDSCAPE: chips are tight, so reclaim space from the
@@ -967,6 +976,17 @@
       text-decoration-thickness: 2px;
       text-underline-offset: 3px;
     }
+    /* Click-to-focus highlight — tap any cell other than the name to
+       lock a tracking band on a single row. Distinct color from leader
+       (gold), runner-up and me (both navy-tinted) so all four states
+       coexist visually. The ID-prefixed selector beats those other
+       row states when both classes apply to the same row. */
+    #poolSection tbody tr.focused > td {
+      background: var(--focus-row) !important;
+    }
+    #poolSection tbody tr.focused > td:first-child {
+      box-shadow: inset 4px 0 0 var(--masters);
+    }
     .wrap { overflow: auto; padding: 0 1rem 1rem; background: var(--surface); }
     table#grid {
       border-collapse: collapse;
@@ -1306,6 +1326,12 @@
        search dropdown without re-binding listeners every 2-3 minutes. */
     let leaderboardPlayers = [];
     let currentPlayerSelection = null;
+    /* Friend name of the currently click-focused pool row, or null.
+       Survives renderPool re-runs (every 3 min during the burst, every
+       5 min otherwise, plus on language switch) so the user's row
+       tracking band doesn't disappear under them. Session-only on
+       purpose — no localStorage. */
+    let lastFocusedFriendName = null;
 
     /* ----- i18n -------------------------------------------------------- */
     const STRINGS = {
@@ -2084,6 +2110,25 @@
         tr.setAttribute("data-player", fr.name);
         if (fr.ok && fr.rank === 1) tr.classList.add("leader");
         if (fr.ok && fr.rank === 2) tr.classList.add("runner-up");
+        if (fr.name && fr.name === lastFocusedFriendName) tr.classList.add("focused");
+        /* Click anywhere on the row except the name cell to lock a
+           tracking band on this row — useful in phone landscape where
+           the pick chips are tight and the eye easily slips between
+           rows. The name cell still opens the bettor modal (its own
+           click handler runs first; we ignore the bubbled-up event
+           via the bettor-col closest-check). Tapping the same row
+           again clears the band. */
+        tr.addEventListener("click", (e) => {
+          if (e.target.closest("td.bettor-col")) return;
+          const wasFocused = tr.classList.contains("focused");
+          tb.querySelectorAll("tr.focused").forEach((other) => other.classList.remove("focused"));
+          if (wasFocused) {
+            lastFocusedFriendName = null;
+          } else {
+            tr.classList.add("focused");
+            lastFocusedFriendName = fr.name;
+          }
+        });
         const tdR = document.createElement("td");
         tdR.className = "rank-col" + (fr.ok && fr.rank != null ? "" : " rank-col--empty");
         if (fr.ok && fr.rank != null) {
