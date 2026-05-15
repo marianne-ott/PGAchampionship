@@ -17,7 +17,7 @@ const ASCII_FOLD = {
   "\u00ff": "y", "\u0178": "y", // ÿ Ÿ
 };
 
-export function normalizePlayerName(name) {
+function normalizePlayerName(name) {
   let s = (name == null ? "" : String(name)).trim();
   let out = "";
   for (const ch of s) out += ASCII_FOLD[ch] != null ? ASCII_FOLD[ch] : ch;

@@ -13,20 +13,17 @@ compatibility_date = "2025-09-23"
 [triggers]
 crons = ["* * * * *"]
 
-# Secrets are intentionally NOT defined here. Set them after deploy if
-# needed — none are required for the current ESPN-based data path:
-#   wrangler secret put POOL_CONFIG_URL  ← optional override; default
-#                                          fetches pool.json from the
-#                                          public raw GitHub URL.
-#
-# The previous workflow_dispatch path required GITHUB_TOKEN; we no
-# longer dispatch GH Actions from here, so that secret can be deleted
-# from the deployed worker (`wrangler secret delete GITHUB_TOKEN`).
+# No secrets are required for the current ESPN-based data path. Optional:
+#   wrangler secret put POOL_CONFIG_URL  ← override the public raw
+#                                          GitHub URL the worker uses
+#                                          to fetch pool.json (e.g. to
+#                                          point at a private gist).
 #
 # Anything in this file is committed to git; secrets must NEVER be.
 
-# Cloudflare's observability — we get scheduled-event logs visible via
-# `wrangler tail` and in the Workers dashboard, which makes it easy to
-# confirm the cron is firing and the GitHub API call is succeeding.
+# Cloudflare observability — surfaces scheduled-event logs and `fetch()`
+# invocations under `wrangler tail` and in the Workers dashboard, which
+# makes it easy to confirm the per-minute cron is firing and ESPN is
+# responding without errors.
 [observability]
 enabled = true

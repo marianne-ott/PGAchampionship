@@ -1754,7 +1754,6 @@
             worker is unreachable. Same JSON shape, slower cadence.
        The "Update now" button forces a fresh fetch with ?force=1 (worker)
        or a cache-busted reload (static). */
-    const ONE_MIN_MS = 60 * 1000;
     /* Worker mode: refresh every 30s. The worker serves a 60s-cached
        response, so the worst-case staleness is ~90s. Static mode falls
        back to the GH-Actions 5-min cadence and polls less aggressively. */
