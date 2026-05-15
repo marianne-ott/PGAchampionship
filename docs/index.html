@@ -1130,6 +1130,11 @@
     #grid tbody tr:nth-child(even) { background: var(--row-alt); }
     #grid tbody tr:hover td { background: var(--me-row); }
     #grid td:nth-child(2) { white-space: normal; min-width: 10rem; }
+    /* Tee times for scheduled players sit in the same THRU column as
+       hard "F" / hole-number values. Tone them down so the cells the
+       eye should track (in-progress thru-hole, finished round) stay
+       prominent. */
+    #grid td.tee-time { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
     /* Phones: tighten the leaderboard so POS + PLAYER + TO PAR all fit
        without horizontal scroll. Long player names just wrap to two
        lines instead of pushing the totals column off-screen. */
@@ -1666,21 +1671,28 @@
        tee times for scheduled players as "@<ISO timestamp>" so the THRU
        column can render them in the visitor's local timezone — matching
        ESPN's UI which shows e.g. "7:38 PM*" instead of "F" for players
-       waiting to tee off. Non-prefixed cells fall through unchanged. */
+       waiting to tee off.
+       Returns { text, kind } so the caller can class the <td> (tee-time
+       cells render in muted grey so they don't compete visually with the
+       hard numbers in the same column). Non-prefixed cells fall through
+       with kind="". */
     function formatLeaderboardCell(cell) {
       const s = String(cell == null ? "" : cell);
-      if (s.length < 2 || s.charCodeAt(0) !== 64 /* '@' */) return s;
+      if (s.length < 2 || s.charCodeAt(0) !== 64 /* '@' */) return { text: s, kind: "" };
       const d = new Date(s.slice(1));
-      if (Number.isNaN(d.getTime())) return s;
+      if (Number.isNaN(d.getTime())) return { text: s, kind: "" };
       try {
-        return new Intl.DateTimeFormat(localeTag(), {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-          timeZone: getDisplayTimeZone(),
-        }).format(d);
+        return {
+          text: new Intl.DateTimeFormat(localeTag(), {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: getDisplayTimeZone(),
+          }).format(d),
+          kind: "tee-time",
+        };
       } catch (e) {
-        return s.slice(1);
+        return { text: s.slice(1), kind: "tee-time" };
       }
     }
 
@@ -1916,7 +1928,9 @@
         const tr = document.createElement("tr");
         row.forEach((cell) => {
           const td = document.createElement("td");
-          td.textContent = formatLeaderboardCell(cell);
+          const out = formatLeaderboardCell(cell);
+          td.textContent = out.text;
+          if (out.kind) td.classList.add(out.kind);
           tr.appendChild(td);
         });
         bd.appendChild(tr);
