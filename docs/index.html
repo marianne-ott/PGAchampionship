@@ -1517,7 +1517,7 @@
           return (
             '<div class="pool-rules-sub">Poenggivning</div>' +
             '<p>Hvert valg gir poeng = spillerens <strong>plassering</strong> på leaderboardet. Totalen din er summen av de <strong>' + st.counting_picks + '</strong> beste av <strong>' + st.picks_per_friend + '</strong>. <strong>Lavest total vinner.</strong></p>' +
-            '<p>Maks <strong>' + st.cut_points + '</strong> poeng gis hvis spilleren <strong>missed cut</strong>, eller ikke har fullført sitt første hull i Runde 1.</p>' +
+            '<p>Ingen spiller gir mer enn <strong>' + st.cut_points + '</strong> poeng — uansett om de er utenfor topp ' + st.cut_points + ', <strong>missed cut</strong>, eller ikke har startet ennå.</p>' +
             '<div class="pool-rules-sub">Hvilke valg teller?</div>' +
             '<p>Vi forkaster dine <strong>' + nDrop + '</strong> dårligste valg (høyest poeng). Ved likhet forkastes høyeste pott-nummer først, så topp-valgene er trygge. Forkastede valg er <strong>overstrøket</strong>.</p>'
           );
@@ -1575,7 +1575,7 @@
           return (
             '<div class="pool-rules-sub">Scoring</div>' +
             '<p>Each pick scores the player\u2019s current <strong>leaderboard position</strong>. Your total is the sum of your best <strong>' + st.counting_picks + '</strong> of <strong>' + st.picks_per_friend + '</strong>. <strong>Lowest total wins.</strong></p>' +
-            '<p>A player gets the max <strong>' + st.cut_points + '</strong> points if they <strong>miss the cut</strong>, or before they\u2019ve finished their first hole in Round 1.</p>' +
+            '<p>No player ever scores more than <strong>' + st.cut_points + '</strong> points — whether they finish outside the top ' + st.cut_points + ', <strong>miss the cut</strong>, or haven\u2019t teed off yet.</p>' +
             '<div class="pool-rules-sub">Which picks count?</div>' +
             '<p>We drop your <strong>' + nDrop + '</strong> worst picks (highest points). When picks tie, we drop the higher-numbered pots first, so your top-pot picks stay protected. Dropped picks are <strong>struck through</strong>.</p>'
           );
