@@ -359,6 +359,11 @@
       font-variant-numeric: tabular-nums;
       color: var(--masters);
       letter-spacing: -0.02em;
+      /* Tight line-height on the cell itself so the strut (font-size ×
+         line-height) can never exceed the pill's fixed 2.4rem height.
+         Without this the leader's 1.55rem font would create a 2.25rem+
+         strut and stretch row 1 past the pill. */
+      line-height: 1;
     }
     .pool td.rank-col:not(.rank-col--empty) {
       display: flex;
