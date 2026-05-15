@@ -343,12 +343,12 @@
        leader / runner-up / focused / me rows. Same idea on each of
        the other td-level row-tint rules below. */
     .pool tr.leader td { color: var(--masters-dark); background-color: var(--leader-row) !important; }
-    /* Leader gets a bigger rank digit for visual prominence. Row 1 ends
-       up slightly taller than rows 2..N because of this — the picks grid
-       handles that by stretching its column dividers to the full row
-       height (see .pool td.picks-cell { height: 1px } below), so the
-       continuous vertical lines through the pick chips line up cleanly
-       whatever heights the bettor rows happen to be. */
+    /* Leader gets a bigger rank digit for visual prominence. The pill
+       below uses line-height:1 so even at 1.55rem the pill's content
+       height (~2.07rem) stays under the picks-cell slot's min-height
+       (2.1rem). That way the picks grid — not the rank pill — drives
+       row height, and every bettor row resolves to the same height
+       regardless of whether row 1 has the bigger digit. */
     .pool tr.leader td.rank-col { font-size: 1.55rem; }
     .pool tr.runner-up td { background-color: #eaf0fa !important; color: var(--text); }
     .pool tr.runner-up td.rank-col { color: var(--masters); }
@@ -411,6 +411,11 @@
       min-width: 2.35rem;
       padding: 0.2rem 0.45rem;
       border-radius: 4px;
+      /* Tight line-height so the pill's rendered height is just
+         font-size + padding + border, not multiplied by the page's
+         inherited 1.45 leading. Without this, the leader's 1.55rem
+         digit makes row 1 noticeably taller than the rest. */
+      line-height: 1;
       /* Transparent bg + transparent border on regular rows so the
          pill introduces no extra horizontal edges inside the rank
          column. The row-divider line stays a single straight line all
