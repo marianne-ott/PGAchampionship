@@ -339,12 +339,13 @@
     .pool tbody tr:nth-child(even) { background: var(--row-alt); }
     .pool tbody tr:nth-child(odd) { background: var(--surface); }
     .pool tr.leader td { color: var(--masters-dark); background: var(--leader-row) !important; }
-    /* Keep the leader's rank cell the same font-size as everyone else's,
-       so row 1's height matches rows 2..N. The gold pill background +
-       leader-row tint + trophy already mark the winner visually; bumping
-       the digit on top of all that made row 1 a few pixels taller than
-       its neighbours, which broke the alignment of the pick-grid column
-       dividers running down the table. */
+    /* Leader gets a bigger rank digit for visual prominence. Row 1 ends
+       up slightly taller than rows 2..N because of this — the picks grid
+       handles that by stretching its column dividers to the full row
+       height (see .pool td.picks-cell { height: 1px } below), so the
+       continuous vertical lines through the pick chips line up cleanly
+       whatever heights the bettor rows happen to be. */
+    .pool tr.leader td.rank-col { font-size: 1.55rem; }
     .pool tr.runner-up td { background: #eaf0fa !important; color: var(--text); }
     .pool tr.runner-up td.rank-col { color: var(--masters); }
     .pool td.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -797,7 +798,25 @@
        (rank | trophy | name | total | picks). */
     .pool thead th:nth-child(4) { text-align: right; }
     .pool td.poolscore.muted { font-size: 0.88rem; color: var(--muted); font-weight: 500; }
-    .pool td.picks-cell { min-width: 0; color: var(--text); vertical-align: top; }
+    /* `height: 1px` is the classic CSS trick for making a `height: 100%`
+       child of a table cell resolve to the row's actual height. We need
+       it here so the .pick-grid (and the column dividers on each slot)
+       stretches vertically to fill whatever row height the rest of the
+       row imposes — including the slightly taller leader row driven by
+       its 1.55rem rank digit. Without this the dividers stay locked at
+       the chip-slot content height and don't reach the top/bottom of a
+       tall row, which is what makes the column lines look bent.
+       Zero vertical padding so the dividers run edge-to-edge of the
+       td — the slot's own padding still keeps the chip text from
+       touching the row borders. */
+    .pool td.picks-cell {
+      min-width: 0;
+      color: var(--text);
+      vertical-align: top;
+      height: 1px;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
     /* Seven fixed columns = pot tiers; aligns across all bettor rows.
        No outer frame and no background, only 1px column dividers between
        chips. With repeat(7, 1fr) every row uses identical column widths
@@ -811,8 +830,10 @@
     .pick-grid {
       display: grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-auto-rows: 1fr;
       gap: 0;
       width: 100%;
+      height: 100%;
     }
     .pick-slot {
       position: relative;
