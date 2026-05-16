@@ -135,13 +135,25 @@ export function computePoolStandings(playerRows, config) {
 
     const ptsOnly = ptsList.map((x) => Number.parseInt(x, 10));
     const nDrop = Math.max(0, ptsOnly.length - countingPicks);
-    // Drop the picks with the *highest* point totals (worst results). Ties
-    // broken by pot index — when several picks share a value (e.g. several
-    // unstarted/missed-cut picks all at cutPoints), drop the rightmost slots
-    // first so the marquee early-tier picks (Pot 1 favourite, etc.) survive.
-    const indexed = ptsOnly.map((v, i) => [i, v]);
-    indexed.sort((a, b) => b[1] - a[1] || b[0] - a[0]); // descending by (pts, idx)
-    const dropIdx = new Set(indexed.slice(0, nDrop).map((t) => t[0]));
+    // Drop the picks with the *highest* point totals (worst results). Tie-break
+    // priority for which equal-points pick to drop:
+    //   1. missed_cut=true first — those picks are locked at cut_points forever,
+    //      so dropping them frees a tied non-MC pick (e.g. someone capped at
+    //      T78 = cut_points) to still benefit from any future climb up the
+    //      leaderboard.
+    //   2. then rightmost pot index — protect the marquee early-tier picks
+    //      (Pot 1 favourite, etc.) so two same-points actives both stay.
+    const indexed = ptsOnly.map((v, i) => ({
+      idx: i,
+      pts: v,
+      mc: !!pickRows[i].missedCut,
+    }));
+    indexed.sort((a, b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;          // worst points first
+      if (a.mc !== b.mc) return a.mc ? -1 : 1;             // MC before non-MC
+      return b.idx - a.idx;                                // rightmost first
+    });
+    const dropIdx = new Set(indexed.slice(0, nDrop).map((p) => p.idx));
     let total = 0;
     for (let i = 0; i < ptsOnly.length; i++) {
       if (!dropIdx.has(i)) total += ptsOnly[i];

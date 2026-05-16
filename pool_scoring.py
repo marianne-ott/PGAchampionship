@@ -136,13 +136,17 @@ def compute_pool_standings(
         pts_only = [int(x) for x in pts_list]
         n_drop = max(0, len(pts_only) - counting_picks)
         # Always drop the picks with the highest point totals (worst results).
-        # Ties are broken by *pot number* — when several picks have the same
-        # points (e.g. multiple unstarted/missed-cut picks all at cut_points),
-        # we drop the rightmost slots first (highest pot tier), protecting
-        # the marquee early-tier picks like the Pot 1 favourite.
-        indexed = list(enumerate(pts_only))
-        worst = sorted(indexed, key=lambda t: (t[1], t[0]), reverse=True)[:n_drop]
-        drop_idx = {i for i, _ in worst}
+        # Tie-break priority for which equal-points pick to drop:
+        #   1. missed_cut=True first — those picks are locked at cut_points
+        #      forever, so dropping them frees a tied non-MC pick (e.g. a player
+        #      capped at T78 = cut_points) to still benefit from any future
+        #      climb up the leaderboard.
+        #   2. then highest pot index (rightmost) — protects the marquee
+        #      early-tier picks like the Pot 1 favourite when two same-points
+        #      actives are competing for the drop.
+        indexed = [(i, pts_only[i], bool(pick_rows[i].get("missedCut"))) for i in range(len(pts_only))]
+        worst = sorted(indexed, key=lambda t: (t[1], 1 if t[2] else 0, t[0]), reverse=True)[:n_drop]
+        drop_idx = {i for i, _, _ in worst}
         total = sum(p for i, p in enumerate(pts_only) if i not in drop_idx)
         for i, pr in enumerate(pick_rows):
             pr["counts"] = i not in drop_idx
