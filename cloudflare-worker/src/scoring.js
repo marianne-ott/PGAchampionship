@@ -28,14 +28,14 @@ function normalizePlayerName(name) {
 
 /* Parse a position display string into (points, missedCut).
  *
- *   "T49"   → 49
- *   "117"   → min(117, cutPoints)   ← anyone outside the cut-tier still
- *                                     scores no worse than a missed-cut
- *                                     pick (Hovland T117 would otherwise
- *                                     dwarf the legitimate 75-point CUT).
- *   "CUT"   → cutPoints (missedCut=true)
- *   blank   → cutPoints              ← so unstarted picks don't trivially
- *                                     "win" the pool.
+ *   "T49"        → 49
+ *   "117"        → min(117, cutPoints)   ← anyone outside the cut-tier still
+ *                                          scores no worse than a missed-cut
+ *                                          pick (Hovland T117 would otherwise
+ *                                          dwarf the legitimate 75-point CUT).
+ *   "MC" / "CUT" → cutPoints (missedCut=true)
+ *   blank        → cutPoints              ← so unstarted picks don't trivially
+ *                                          "win" the pool.
  *
  * Mirrors pga_position_points in pgac_poll.py / masters_poll.py — keep
  * them in lock-step.
@@ -44,7 +44,7 @@ export function positionPoints(positionDisplay, cutPoints) {
   const raw = (positionDisplay == null ? "" : String(positionDisplay)).trim().toUpperCase();
   const BLANK = new Set(["", "-", "\u2010", "\u2013", "\u2014", "--"]);
   if (BLANK.has(raw)) return { points: cutPoints, missedCut: false };
-  if (raw === "CUT") return { points: cutPoints, missedCut: true };
+  if (raw === "CUT" || raw === "MC") return { points: cutPoints, missedCut: true };
   const numStr = raw.startsWith("T") ? raw.slice(1) : raw;
   const n = Number.parseInt(numStr, 10);
   if (!Number.isFinite(n)) {

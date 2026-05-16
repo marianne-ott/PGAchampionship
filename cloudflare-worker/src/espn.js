@@ -32,12 +32,17 @@ const ROUND_COLS = 4;
 const STATUS_IN_PROGRESS = "STATUS_IN_PROGRESS";
 const STATUS_PLAY_COMPLETE = "STATUS_PLAY_COMPLETE";
 const STATUS_SCHEDULED = "STATUS_SCHEDULED";
-const STATUS_CUT_OFF = "STATUS_CUT_OFF";
+// ESPN's status.type.name values for tournament-eliminated players.
+// `STATUS_CUT` is what the live feed actually emits for missed-cut competitors
+// (NOT `STATUS_CUT_OFF` — easy to confuse with the cut-line status used in
+// other ESPN sports endpoints). WD/DQ are folded into the same bucket because
+// pool scoring treats them identically to a missed cut.
+const STATUS_CUT = "STATUS_CUT";
 const STATUS_WITHDRAWN = "STATUS_WITHDRAWN";
 const STATUS_DISQUALIFIED = "STATUS_DISQUALIFIED";
 
 const NON_PLAYING_STATUSES = new Set([
-  STATUS_CUT_OFF,
+  STATUS_CUT,
   STATUS_WITHDRAWN,
   STATUS_DISQUALIFIED,
 ]);
@@ -81,18 +86,18 @@ function countryCodeFromFlag(flagHref) {
 }
 
 function displayPositionFor(competitor) {
-  /* Use the position string ESPN renders when it's set; otherwise fall back
-   * to the status type so pool scoring works for CUT/WD/DQ players. We map
-   * WD/DQ to "CUT" so they consistently count as `cut_points` (and missed_cut)
-   * in the tier pool — the alternative is to throw on the unrecognized label,
-   * which would freeze the entire pool view if any single player WDs. */
+  /* Cut/WD/DQ players need to be detected BEFORE reading
+   * `position.displayName`, because ESPN returns a bare "-" placeholder for
+   * those competitors. We surface them as "MC" (missed cut) so the POS
+   * column and the pool chip both read clearly — WD/DQ are folded into the
+   * same bucket since they all score `cut_points` (missed_cut) in the pool. */
   const status = competitor.status || {};
+  const t = (status.type && status.type.name) || "";
+  if (NON_PLAYING_STATUSES.has(t)) return "MC";
   const pos = status.position;
   if (pos && typeof pos === "object" && pos.displayName) {
     return String(pos.displayName);
   }
-  const t = (status.type && status.type.name) || "";
-  if (NON_PLAYING_STATUSES.has(t)) return "CUT";
   return "";
 }
 

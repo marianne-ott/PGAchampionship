@@ -121,14 +121,14 @@ def _display_name(row: dict[str, Any]) -> str:
 
 
 def position_points(position_display: str, *, cut_points: int = 75) -> tuple[int, bool]:
-    """Listed place → min(place, cut_points); CUT → cut_points; unstarted → cut_points.
+    """Listed place → min(place, cut_points); MC/CUT → cut_points; unstarted → cut_points.
 
     Anyone outside the cut tier (e.g. T117) is capped at `cut_points` — a
     pick that finished the tournament shouldn't score worse than a missed-cut
-    pick. CUT and unstarted picks also score `cut_points` so a card full of
-    not-yet-started picks doesn't trivially "win" the pool. The `missed_cut`
-    flag is True only for an actual CUT line, so the tier-drop rule only
-    triggers in that case.
+    pick. MC/CUT and unstarted picks also score `cut_points` so a card full
+    of not-yet-started picks doesn't trivially "win" the pool. The
+    `missed_cut` flag is True only for an actual MC/CUT line, so the
+    tier-drop rule only triggers in that case.
 
     Mirrors `cloudflare-worker/src/scoring.js#positionPoints` and
     `masters_poll.pga_position_points` — keep them in lock-step.
@@ -137,7 +137,7 @@ def position_points(position_display: str, *, cut_points: int = 75) -> tuple[int
     raw = (position_display or "").strip().upper()
     if not raw or raw in {"-", "\u2010", "\u2013", "\u2014", "--"}:
         return cut_points, False
-    if raw == "CUT":
+    if raw in {"CUT", "MC"}:
         return cut_points, True
     num = raw[1:] if raw.startswith("T") else raw
     try:
@@ -148,6 +148,19 @@ def position_points(position_display: str, *, cut_points: int = 75) -> tuple[int
 
 def _round_completed(round_score: Any) -> bool:
     return isinstance(round_score, dict) and bool(round_score.get("completed"))
+
+
+def _normalize_position(raw_position: Any) -> str:
+    """Translate pgachampionship.com's `position` field to our display form.
+
+    Cut players come back as "CUT" (or with the C upper/lowercased depending on
+    feed version); we surface them as "MC" to match the worker's ESPN path and
+    keep the POS column and pool chip readable. Everything else passes through.
+    """
+    pos = str(raw_position or "").strip()
+    if pos.upper() == "CUT":
+        return "MC"
+    return pos
 
 
 def _is_done_final_round(row: dict[str, Any]) -> bool:
@@ -161,7 +174,7 @@ def pga_player_rows(payload: dict[str, Any], *, cut_points: int = 75) -> list[di
     for r in lb.get("rows") or []:
         if r.get("__typename") != "GolferScore":
             continue
-        pos = str(r.get("position") or "").strip()
+        pos = _normalize_position(r.get("position"))
         pts, mc = position_points(pos, cut_points=cut_points)
         out.append(
             {
@@ -238,7 +251,7 @@ def extract_leaderboard(payload: dict[str, Any]) -> tuple[list[str], list[list[s
         rnd_cells = [_round_total_cell(r.get(f"round{n}GolferRoundScore")) for n in (1, 2, 3, 4)]
         rows_out.append(
             [
-                str(r.get("position") or ""),
+                _normalize_position(r.get("position")),
                 _display_name(r),
                 str(r.get("overallPar") or ""),
                 today_cell,
