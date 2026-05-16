@@ -743,7 +743,7 @@
     }
     .bettor-dialog__pick {
       display: grid;
-      grid-template-columns: 2.6rem 1fr 3.2rem 2.6rem 2.4rem;
+      grid-template-columns: 2.6rem 1fr 2.6rem 2.6rem 3.2rem 2.4rem;
       gap: 0.4rem 0.55rem;
       align-items: baseline;
       padding: 0.45rem 0.55rem;
@@ -771,6 +771,7 @@
     .bettor-dialog__pick--head .bettor-dialog__pick-name,
     .bettor-dialog__pick--head .bettor-dialog__pick-pts,
     .bettor-dialog__pick--head .bettor-dialog__pick-pos,
+    .bettor-dialog__pick--head .bettor-dialog__pick-score,
     .bettor-dialog__pick--head .bettor-dialog__pick-thru {
       font-family: inherit;
       font-size: inherit;
@@ -816,6 +817,19 @@
       color: var(--muted);
       font-weight: 400;
     }
+    /* Running tournament-total to par for the player (e.g. "-4", "E", "+7").
+       Same value the leaderboard TOT column shows, mirrored here so the user
+       can see at a glance how each pick is actually playing. */
+    .bettor-dialog__pick-score {
+      font-family: var(--display-font);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: right;
+      letter-spacing: 0.02em;
+    }
+    .bettor-dialog__pick.drop .bettor-dialog__pick-score { color: var(--muted); }
     .bettor-dialog__pick-pos {
       font-family: var(--display-font);
       font-size: 0.85rem;
@@ -832,17 +846,18 @@
       text-align: right;
     }
     .bettor-dialog__pick.drop .bettor-dialog__pick-pts { color: var(--muted); }
-    /* Phone portrait only: drop the PTS column so long player names
-       ("Scottie Scheffler") don't wrap to two lines. The position column
-       already conveys what each pick is contributing for non-MC players
-       (pos == pts), and the total at the top of the modal still shows the
-       math. MC → cut_points is explained in the rules panel. Phone
-       landscape gets the wider 852-ish px viewport and keeps PTS. */
+    /* Phone portrait only: drop the SCORE and PTS columns so long player
+       names ("Scottie Scheffler") don't wrap to two lines. The position
+       column already conveys what each pick is contributing for non-MC
+       players (pos == pts), and the total at the top of the modal still
+       shows the math. MC → cut_points is explained in the rules panel.
+       Phone landscape gets the wider 852-ish px viewport and keeps both. */
     @media (max-width: 600px) and (orientation: portrait) {
       .bettor-dialog__pick {
-        grid-template-columns: 2.6rem 1fr 3.2rem 2.6rem;
+        grid-template-columns: 2.6rem 1fr 2.6rem 3.2rem;
         gap: 0.4rem 0.45rem;
       }
+      .bettor-dialog__pick-score,
       .bettor-dialog__pick-pts {
         display: none;
       }
@@ -1560,6 +1575,7 @@
         finishedFinalRoundLabel: "Ferdig med siste runde",
         finishedFinalRoundTitle: "Ferdig med siste runde",
         modalColThru: "Spilt",
+        modalColScore: "Tot",
         modalColPos: "Plass",
         modalColPts: "Poeng",
         close: "Lukk",
@@ -1621,6 +1637,7 @@
         finishedFinalRoundLabel: "Finished final round",
         finishedFinalRoundTitle: "Finished final round",
         modalColThru: "Thru",
+        modalColScore: "Tot",
         modalColPos: "Pos",
         modalColPts: "Pts",
         close: "Close",
@@ -1842,8 +1859,9 @@
       header.innerHTML =
         "<span class='bettor-dialog__pick-tier'></span>" +
         "<span class='bettor-dialog__pick-name'></span>" +
-        "<span class='bettor-dialog__pick-thru'>" + escapeHtml(t("modalColThru")) + "</span>" +
         "<span class='bettor-dialog__pick-pos'>" + escapeHtml(t("modalColPos")) + "</span>" +
+        "<span class='bettor-dialog__pick-score'>" + escapeHtml(t("modalColScore")) + "</span>" +
+        "<span class='bettor-dialog__pick-thru'>" + escapeHtml(t("modalColThru")) + "</span>" +
         "<span class='bettor-dialog__pick-pts'>" + escapeHtml(t("modalColPts")) + "</span>";
       picksWrap.appendChild(header);
 
@@ -1854,16 +1872,21 @@
         else if (p.counts === false) cls.push("drop");
         row.className = cls.join(" ");
         const tier = t("potN", i + 1);
-        let nameTxt, posTxt, ptsTxt;
+        let nameTxt, posTxt, ptsTxt, scoreTxt;
         let thruText = "", thruKind = "";
         if (p.missing) {
           nameTxt = (p.pick || "") + " " + t("noMatch");
           posTxt = "—";
           ptsTxt = "—";
+          scoreTxt = "—";
         } else {
           nameTxt = (p.matched && p.matched !== p.pick) ? p.matched : (p.pick || "");
           posTxt = p.position || "—";
           ptsTxt = String(p.points);
+          // Running tournament-total to par — same value the leaderboard
+          // TOT column shows. Empty string means the player hasn't scored
+          // yet (pre-tournament tee time); render an em-dash for that.
+          scoreTxt = p.score || "—";
           // `thru` carries the same encoding the leaderboard table uses:
           //   - a hole number ("13") for players currently on course
           //   - "F" for players who've signed for today's round
@@ -1879,8 +1902,9 @@
         row.innerHTML =
           "<span class='bettor-dialog__pick-tier'>" + escapeHtml(tier) + "</span>" +
           "<span class='bettor-dialog__pick-name'>" + escapeHtml(nameTxt) + "</span>" +
-          "<span class='" + thruCls + "'>" + escapeHtml(thruText) + "</span>" +
           "<span class='bettor-dialog__pick-pos'>" + escapeHtml(posTxt) + "</span>" +
+          "<span class='bettor-dialog__pick-score'>" + escapeHtml(scoreTxt) + "</span>" +
+          "<span class='" + thruCls + "'>" + escapeHtml(thruText) + "</span>" +
           "<span class='bettor-dialog__pick-pts'>" + escapeHtml(ptsTxt) + "</span>";
         picksWrap.appendChild(row);
       });

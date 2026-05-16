@@ -143,6 +143,11 @@ export function extractPlayerRows(raw, cutPoints, positionPoints) {
       // pending tee time, "" otherwise). Picking todayCells[1] keeps the
       // semantics in lock-step with what the user sees in the leaderboard.
       thru: todayCells(c)[1],
+      // `score` is the running tournament-total to par ("-4", "E", "+7",
+      // or "" if the player hasn't scored yet) — same value the leaderboard
+      // TOT column uses, so the modal stays consistent with what the user
+      // sees on the main grid.
+      score: runningTotalToPar(c),
     });
   }
   return rows;

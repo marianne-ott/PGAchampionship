@@ -116,6 +116,7 @@ export function computePoolStandings(playerRows, config) {
           missing: false,
           doneFinalRound: !!row.doneFinalRound,
           thru: row.thru || "",
+          score: row.score || "",
         });
         ptsList.push(Number.parseInt(row.points, 10));
       }

@@ -165,6 +165,10 @@ def pga_player_rows(payload: dict[str, Any], *, cut_points: int = 75) -> list[di
                 # tee time, "" otherwise) so the chip modal stays in lock-step
                 # with the main leaderboard.
                 "thru": _today_cells(c)[1],
+                # `score` is the running tournament-total to par — same value
+                # the leaderboard TOT column uses ("-4", "E", "+7", or "" if
+                # the player hasn't scored yet).
+                "score": _running_total_to_par(c),
             }
         )
     return out

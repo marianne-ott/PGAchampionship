@@ -142,6 +142,7 @@ def compute_pool_standings(
                         "missing": False,
                         "doneFinalRound": bool(row.get("doneFinalRound")),
                         "thru": row.get("thru") or "",
+                        "score": row.get("score") or "",
                     }
                 )
                 pts_list.append(int(row["points"]))
