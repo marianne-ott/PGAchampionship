@@ -35,6 +35,31 @@ def normalize_player_name(name: str) -> str:
     return " ".join(s.lower().split())
 
 
+def position_points(position_display: str, *, cut_points: int = 75) -> tuple[int, bool]:
+    """Listed place → min(place, cut_points); MC/CUT → cut_points; unstarted → cut_points.
+
+    Anyone outside the cut tier (e.g. T117) is capped at `cut_points` — a
+    pick that finished the tournament shouldn't score worse than a missed-cut
+    pick. MC/CUT and unstarted picks also score `cut_points` so a card full
+    of not-yet-started picks doesn't trivially "win" the pool. The
+    `missed_cut` flag is True only for an actual MC/CUT line, so the
+    tier-drop rule only triggers in that case.
+
+    Mirrors `cloudflare-worker/src/scoring.js#positionPoints` — keep them in
+    lock-step. Returns (points, missed_cut).
+    """
+    raw = (position_display or "").strip().upper()
+    if not raw or raw in {"-", "\u2010", "\u2013", "\u2014", "--"}:
+        return cut_points, False
+    if raw in {"CUT", "MC"}:
+        return cut_points, True
+    num = raw[1:] if raw.startswith("T") else raw
+    try:
+        return min(int(num), cut_points), False
+    except ValueError as e:
+        raise ValueError(f"Unrecognized position {position_display!r}") from e
+
+
 def load_pool_config(path: str | Path) -> dict[str, Any]:
     p = Path(path)
     return json.loads(p.read_text(encoding="utf-8"))
@@ -56,8 +81,8 @@ def compute_pool_standings(
     """Score the pool against a pre-extracted list of player rows.
 
     Source-agnostic — the caller (see `leaderboard_server.build_dashboard`)
-    picks the right adapter (pgatour `__NEXT_DATA__` vs. pgachampionship
-    GraphQL) and passes in rows already shaped like
+    fetches from the upstream feed (ESPN today; see `espn_poll.py`) and
+    passes in rows already shaped like
     `{displayName, country, position, points, missedCut, doneFinalRound}`.
     """
     # `cut_points` is no longer used to *compute* points here — the caller

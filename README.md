@@ -1,14 +1,18 @@
 # Chosen 7 — Personal PGA Championship pool tracker
 
-Live (well, every 5 min) leaderboard for our friends' "Chosen 7" pool, scraped
-from the public PGA TOUR leaderboard page.
+Near-live leaderboard for our friends' "Chosen 7" pool, served from
+ESPN's public golf-leaderboard feed.
+
+The live page is a static `docs/index.html` on GitHub Pages that talks to a
+Cloudflare Worker (`cloudflare-worker/`) on every-minute cadence. If the
+worker is unreachable, it falls back to a `docs/data.json` snapshot that a
+5-minute GitHub Actions cron keeps fresh via `build_static.py`. Both paths
+hit the same ESPN endpoint so totals never drift.
 
 ## Important
 
 - This is **not** an official API. Use **only for personal, low-volume** experimentation.
-- Respect site terms (e.g. [PGA TOUR Terms of Use](https://www.pgatour.com/page/terms-of-use))
-  and robots guidance; do not fetch aggressively or republish content commercially.
-- The HTML/JSON shape can change anytime; the script may break without notice.
+- The endpoint can change without notice; the adapters may break.
 
 ## Run locally
 
@@ -16,12 +20,12 @@ from the public PGA TOUR leaderboard page.
 python3 leaderboard_server.py
 ```
 
-Open **http://127.0.0.1:8765/** in a browser. Same UI as on Pages, but each click
-of **Update** triggers a live fetch from `pgatour.com`.
+Open **http://127.0.0.1:8765/** in a browser. Same UI as on Pages, but each
+refresh triggers a live ESPN fetch.
 
-`pool.json` is read from the **same folder as `leaderboard_server.py`**, not from
-your shell's cwd, so you can start the server from anywhere as long as `pool.json`
-sits beside that file.
+`pool.json` is read from the **same folder as `leaderboard_server.py`**, not
+from your shell's cwd, so you can start the server from anywhere as long as
+`pool.json` sits beside that file.
 
 ### Re-import picks from Excel
 

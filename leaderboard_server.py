@@ -5,6 +5,9 @@ Serves the same `docs/index.html` that GitHub Pages serves. The static page
 loads `./data.json`; locally we compute that JSON on the fly per request,
 in production (Pages) it's a snapshot written by `build_static.py` via the
 GitHub Actions workflow in `.github/workflows/deploy.yml`.
+
+Data source is ESPN (`espn_poll.py`) — the same feed the Cloudflare Worker
+uses, so the local dev page sees the same numbers as the live site.
 """
 
 from __future__ import annotations
@@ -17,8 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-import masters_poll
-import pgac_poll
+import espn_poll
 import pool_scoring
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -30,13 +32,8 @@ def _json_bytes(obj: object) -> bytes:
     return json.dumps(obj, ensure_ascii=False).encode("utf-8")
 
 
-def build_dashboard(url: str, pool_config_path: Path) -> dict[str, Any]:
-    """Fetch the leaderboard + compute pool standings; the same payload Pages serves.
-
-    Dispatches on the URL: pgachampionship.com uses the official GraphQL
-    persisted-query endpoint (typically several minutes ahead of pgatour);
-    anything else falls back to pgatour.com's inline `__NEXT_DATA__` blob.
-    """
+def build_dashboard(pool_config_path: Path) -> dict[str, Any]:
+    """Fetch the ESPN leaderboard + compute pool standings; the payload Pages serves."""
     pool_payload: dict[str, Any] = {
         "configPath": str(pool_config_path),
         "fileExists": pool_config_path.is_file(),
@@ -51,15 +48,9 @@ def build_dashboard(url: str, pool_config_path: Path) -> dict[str, Any]:
             pool_payload["parseError"] = str(e)
     cut_points = int((cfg or {}).get("cut_points", 75))
 
-    if pgac_poll.is_pgac_url(url):
-        payload = pgac_poll.fetch_leaderboard_data()
-        lb = pgac_poll.leaderboard_snapshot_from_payload(url, payload)
-        player_rows = pgac_poll.pga_player_rows(payload, cut_points=cut_points)
-    else:
-        html = masters_poll.fetch_html(url)
-        next_data = masters_poll.parse_next_data(html)
-        lb = masters_poll.leaderboard_snapshot_from_next(url, next_data)
-        player_rows = masters_poll.pga_player_rows(next_data, cut_points=cut_points)
+    payload = espn_poll.fetch_leaderboard_data()
+    lb = espn_poll.leaderboard_snapshot_from_payload(espn_poll.ESPN_LEADERBOARD_URL, payload)
+    player_rows = espn_poll.pga_player_rows(payload, cut_points=cut_points)
 
     if cfg is not None and pool_payload["parseError"] is None:
         try:
@@ -74,7 +65,7 @@ def _send_no_cache_headers(handler: BaseHTTPRequestHandler) -> None:
     handler.send_header("Pragma", "no-cache")
 
 
-def make_handler(default_url: str, pool_config_path: Path):
+def make_handler(pool_config_path: Path):
     class LeaderboardHandler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.0"
 
@@ -89,9 +80,9 @@ def make_handler(default_url: str, pool_config_path: Path):
             self.end_headers()
             self.wfile.write(body)
 
-        def _serve_dashboard_json(self, url: str) -> None:
+        def _serve_dashboard_json(self) -> None:
             try:
-                bundle = build_dashboard(url, pool_config_path)
+                bundle = build_dashboard(pool_config_path)
                 self._send_bytes(200, "application/json; charset=utf-8", _json_bytes(bundle))
             except Exception as e:
                 self._send_bytes(500, "application/json; charset=utf-8", _json_bytes({"error": str(e)}))
@@ -113,20 +104,13 @@ def make_handler(default_url: str, pool_config_path: Path):
                 self._send_bytes(200, "text/html; charset=utf-8", body)
                 return
 
-            qs = urllib.parse.parse_qs(parsed.query or "")
-            raw = (qs.get("url") or [default_url])[0]
-            url = urllib.parse.unquote(raw).strip() or default_url
-
             if path in ("/data.json", "/api/dashboard"):
-                self._serve_dashboard_json(url)
+                self._serve_dashboard_json()
                 return
 
             if path == "/api/leaderboard":
                 try:
-                    if pgac_poll.is_pgac_url(url):
-                        snap = pgac_poll.leaderboard_snapshot(url)
-                    else:
-                        snap = masters_poll.leaderboard_snapshot(url)
+                    snap = espn_poll.leaderboard_snapshot()
                     self._send_bytes(200, "application/json; charset=utf-8", _json_bytes(snap))
                 except Exception as e:
                     self._send_bytes(500, "application/json; charset=utf-8", _json_bytes({"error": str(e)}))
@@ -142,12 +126,6 @@ def main() -> int:
     p.add_argument("--host", default="127.0.0.1", help="Bind address")
     p.add_argument("--port", type=int, default=8765, help="Port")
     p.add_argument(
-        "--url",
-        default=pgac_poll.DEFAULT_URL,
-        help="Default source URL. pgachampionship.com → official GraphQL feed; "
-        "anything else falls back to pgatour.com's __NEXT_DATA__.",
-    )
-    p.add_argument(
         "--pool",
         default="pool.json",
         help="Path to pool.json (created from pool.example.json); shown in UI even if missing",
@@ -158,13 +136,13 @@ def main() -> int:
     if not pool_path.is_absolute():
         pool_path = (_SCRIPT_DIR / pool_path).resolve()
 
-    handler = make_handler(args.url, pool_path)
+    handler = make_handler(pool_path)
     httpd = ThreadingHTTPServer((args.host, args.port), handler)
     base = f"http://{args.host}:{args.port}"
     print(f"Serving {base}/", file=sys.stderr)
-    print(f"  -> If you only see PGA players: open {base}/app (fresh URL) or hard-refresh (Cmd+Shift+R).", file=sys.stderr)
+    print(f"  -> Open {base}/app for a fresh URL (hard-refresh with Cmd+Shift+R otherwise).", file=sys.stderr)
     print("  -> Chosen 7 is the first tab; full PGA field is on PGA leaderboard.", file=sys.stderr)
-    print(f"  → Data URL: {args.url}", file=sys.stderr)
+    print(f"  → Data source: {espn_poll.ESPN_LEADERBOARD_URL}", file=sys.stderr)
     print(f"  → Pool file: {pool_path}  (exists: {pool_path.is_file()})", file=sys.stderr)
     print("Press Ctrl+C to stop.", file=sys.stderr)
     try:

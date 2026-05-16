@@ -2,20 +2,20 @@ name: Refresh leaderboard and deploy
 
 on:
   schedule:
-    # Every-5-minute baseline rebuild of docs/data.json. This is a
-    # *fallback* feed for the live site: the front-end normally fetches
-    # straight from the Cloudflare Worker (cloudflare-worker/) which
+    # Every-5-minute baseline rebuild of docs/data.json from ESPN (see
+    # `build_static.py` → `espn_poll.py`). This is a *fallback* feed for
+    # the live site: the front-end normally fetches straight from the
+    # Cloudflare Worker (cloudflare-worker/, also ESPN-backed) which
     # refreshes every minute. If the worker is unreachable, the page
-    # falls back to this static data.json, so we want it kept reasonably
-    # fresh on its own. 5 min is the floor GitHub Actions cron allows.
+    # falls back to this static data.json, so we keep it reasonably fresh
+    # on its own. 5 min is the floor GitHub Actions cron allows.
     #
-    # History note: we previously had this worker dispatching
-    # workflow_dispatch every 1-3 min to drive Pages rebuilds at near-
-    # live cadence. That overran GitHub Pages' soft ~10-deploys/hour
-    # publish cap and the site silently froze on a stale artifact for
-    # hours. Moving the data path into the worker itself decouples
-    # refresh from publish and lets this cron go back to a relaxed
-    # baseline.
+    # History note: we previously had a separate workflow_dispatch loop
+    # firing every 1-3 min to drive Pages rebuilds at near-live cadence.
+    # That overran GitHub Pages' soft ~10-deploys/hour publish cap and
+    # the site silently froze on a stale artifact for hours. Moving the
+    # data path into the worker itself decouples refresh from publish
+    # and lets this cron stay relaxed.
     - cron: "0-59/5 * * * *"
   workflow_dispatch:
   push:

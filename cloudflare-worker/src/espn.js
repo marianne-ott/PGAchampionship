@@ -13,8 +13,8 @@
  *   - leaderboardSnapshot(raw)         → the leaderboard-table payload used
  *                                        by docs/index.html (columns/rows)
  *
- * Both shapes match the existing pgac_poll.py / masters_poll.py outputs
- * so the front-end consumes them without changes.
+ * Both shapes are mirrored 1:1 by `espn_poll.py` (the GitHub-Pages fallback
+ * scraper) so the front-end consumes either data path without changes.
  */
 
 export const ESPN_LEADERBOARD_URL =
@@ -50,9 +50,9 @@ const NON_PLAYING_STATUSES = new Set([
 export async function fetchEspnLeaderboard({ fetchImpl = fetch, signal } = {}) {
   const res = await fetchImpl(ESPN_LEADERBOARD_URL, {
     headers: {
-      // Same UA the pgac_poll.py module uses — ESPN serves a slightly
-      // smaller payload to bot-y user-agents, harmless for our purposes
-      // but worth keeping consistent.
+      // Same UA `espn_poll.py` uses — ESPN serves a slightly smaller payload
+      // to bot-y user-agents; harmless for our purposes but worth keeping
+      // consistent across both data paths.
       "User-Agent":
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -118,7 +118,7 @@ function isDoneFinalRound(competitor) {
   return !!(ls && typeof ls.value === "number");
 }
 
-/* Row shape consumed by computePoolStandings (and matches pgac_poll's
+/* Row shape consumed by computePoolStandings (and matches espn_poll.py's
  * `pga_player_rows` output 1:1). */
 export function extractPlayerRows(raw, cutPoints, positionPoints) {
   const competitors = getCompetition(raw).competitors || [];
@@ -245,7 +245,7 @@ function playerCell(athlete, country) {
   return country ? `${name} (${country})` : name;
 }
 
-/* Display-table snapshot — same shape pgac_poll.leaderboard_snapshot returns. */
+/* Display-table snapshot — same shape espn_poll.leaderboard_snapshot returns. */
 export function leaderboardSnapshot(raw, { sourceUrl, fetchedAt } = {}) {
   const ev = getEvent(raw);
   const comp = getCompetition(raw);

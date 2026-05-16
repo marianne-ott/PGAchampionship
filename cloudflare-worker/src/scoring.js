@@ -37,8 +37,7 @@ function normalizePlayerName(name) {
  *   blank        → cutPoints              ← so unstarted picks don't trivially
  *                                          "win" the pool.
  *
- * Mirrors pga_position_points in pgac_poll.py / masters_poll.py — keep
- * them in lock-step.
+ * Mirrors `position_points` in pool_scoring.py — keep them in lock-step.
  */
 export function positionPoints(positionDisplay, cutPoints) {
   const raw = (positionDisplay == null ? "" : String(positionDisplay)).trim().toUpperCase();
