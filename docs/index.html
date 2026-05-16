@@ -832,6 +832,21 @@
       text-align: right;
     }
     .bettor-dialog__pick.drop .bettor-dialog__pick-pts { color: var(--muted); }
+    /* Phone portrait only: drop the PTS column so long player names
+       ("Scottie Scheffler") don't wrap to two lines. The position column
+       already conveys what each pick is contributing for non-MC players
+       (pos == pts), and the total at the top of the modal still shows the
+       math. MC → cut_points is explained in the rules panel. Phone
+       landscape gets the wider 852-ish px viewport and keeps PTS. */
+    @media (max-width: 600px) and (orientation: portrait) {
+      .bettor-dialog__pick {
+        grid-template-columns: 2.6rem 1fr 3.2rem 2.6rem;
+        gap: 0.4rem 0.45rem;
+      }
+      .bettor-dialog__pick-pts {
+        display: none;
+      }
+    }
     .bettor-dialog__legend {
       padding: 0 1rem 0.85rem;
       font-size: 0.7rem;
