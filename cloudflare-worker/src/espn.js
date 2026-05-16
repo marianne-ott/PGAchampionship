@@ -137,6 +137,12 @@ export function extractPlayerRows(raw, cutPoints, positionPoints) {
       points,
       missedCut,
       doneFinalRound: isDoneFinalRound(c),
+      // `thru` carries the same encoding used by the leaderboard table's
+      // THRU column so the modal can render the player's current state
+      // (hole-N for in-progress, "F" for done today, "@<ISO>" for a
+      // pending tee time, "" otherwise). Picking todayCells[1] keeps the
+      // semantics in lock-step with what the user sees in the leaderboard.
+      thru: todayCells(c)[1],
     });
   }
   return rows;
@@ -145,14 +151,25 @@ export function extractPlayerRows(raw, cutPoints, positionPoints) {
 /* Pick the (today-score, thru) cells for the display table.
  *
  *   - Round in progress     → today's to-par, thru-hole number
+ *                             (collapses to "F" the moment the player
+ *                             walks off 18 — ESPN can sit on
+ *                             STATUS_IN_PROGRESS for a beat while the
+ *                             card is being signed, and "18" reads as
+ *                             "still playing" to anyone glancing.)
  *   - Round complete (signed)→ today's to-par, "F"
  *   - Scheduled (between rounds or pre-tournament) → "-" plus the tee time,
  *                              emitted as "@<ISO>" so the client formats it
  *                              in the visitor's local timezone (matches
  *                              ESPN's UI which shows e.g. "7:38 PM*").
- *   - Cut/WD/DQ             → both blank
+ *   - Cut/WD/DQ             → today blank; thru "-" so the chip modal has
+ *                              something to render instead of an empty cell.
  */
 const TEE_TIME_PREFIX = "@";
+
+function thruDisplay(thru) {
+  if (thru == null) return "";
+  return thru === 18 ? "F" : String(thru);
+}
 
 function todayCells(competitor) {
   const lsByPeriod = linescoresByPeriod(competitor);
@@ -165,7 +182,7 @@ function todayCells(competitor) {
   const currentHasValue = currentLs && typeof currentLs.value === "number";
 
   if (statusType === STATUS_IN_PROGRESS && currentHasValue) {
-    return [String(currentLs.displayValue || ""), thru != null ? String(thru) : ""];
+    return [String(currentLs.displayValue || ""), thruDisplay(thru)];
   }
   if (statusType === STATUS_PLAY_COMPLETE && currentHasValue) {
     return [String(currentLs.displayValue || ""), "F"];
@@ -174,10 +191,10 @@ function todayCells(competitor) {
     return ["-", status.teeTime ? TEE_TIME_PREFIX + status.teeTime : ""];
   }
   if (NON_PLAYING_STATUSES.has(statusType)) {
-    return ["", ""];
+    return ["", "-"];
   }
   if (currentHasValue) {
-    return [String(currentLs.displayValue || ""), thru != null ? String(thru) : ""];
+    return [String(currentLs.displayValue || ""), thruDisplay(thru)];
   }
   return ["", ""];
 }

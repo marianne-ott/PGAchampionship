@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,6 +27,23 @@ import pool_scoring
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _DOCS_DIR = _SCRIPT_DIR / "docs"
 _INDEX_HTML_PATH = _DOCS_DIR / "index.html"
+
+# Match the production worker meta-tag, e.g.
+#   <meta name="pga-worker-url" content="https://...workers.dev" />
+# When previewing locally we want the page to score against the freshly-
+# computed Python /data.json — not whatever the live deployed worker is
+# serving — so we strip this tag from the bytes before responding.
+_WORKER_META_RE = re.compile(
+    rb"<meta\s+name=[\"']pga-worker-url[\"'][^>]*>",
+    re.IGNORECASE,
+)
+
+
+def _index_html_bytes() -> bytes:
+    """Serve index.html with the worker-URL meta tag stripped so the page
+    always uses the local /data.json endpoint during preview."""
+    body = _INDEX_HTML_PATH.read_bytes()
+    return _WORKER_META_RE.sub(b"", body)
 
 
 def _json_bytes(obj: object) -> bytes:
@@ -93,7 +111,7 @@ def make_handler(pool_config_path: Path):
 
             if path in ("/", "/app", "/index.html"):
                 try:
-                    body = _INDEX_HTML_PATH.read_bytes()
+                    body = _index_html_bytes()
                 except FileNotFoundError:
                     self._send_bytes(
                         500,

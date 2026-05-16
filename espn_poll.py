@@ -160,19 +160,35 @@ def pga_player_rows(payload: dict[str, Any], *, cut_points: int = 75) -> list[di
                 "points": pts,
                 "missedCut": mc,
                 "doneFinalRound": _is_done_final_round(c),
+                # `thru` mirrors the leaderboard table's THRU cell (hole-N for
+                # in-progress, "F" for done today, "@<ISO>" for an upcoming
+                # tee time, "" otherwise) so the chip modal stays in lock-step
+                # with the main leaderboard.
+                "thru": _today_cells(c)[1],
             }
         )
     return out
 
 
+def _thru_display(thru: int | None) -> str:
+    """Show "F" instead of "18" because anyone "thru 18" has played all
+    18 holes — ESPN may sit on STATUS_IN_PROGRESS for a beat while the
+    card is being signed, and "18" reads as "still on the course" at a
+    glance."""
+    if thru is None:
+        return ""
+    return "F" if thru == 18 else str(thru)
+
+
 def _today_cells(competitor: dict[str, Any]) -> tuple[str, str]:
     """Pick the (today-score, thru) cells for the display table.
 
-    - Round in progress       → today's to-par, thru-hole number
+    - Round in progress       → today's to-par, thru-hole number ("F" if 18)
     - Round complete (signed) → today's to-par, "F"
     - Scheduled (between rounds or pre-tournament) → "-" plus "@<ISO tee time>"
       so the client formats it in the visitor's local timezone
-    - Cut/WD/DQ               → both blank (matches ESPN's UI)
+    - Cut/WD/DQ               → today blank; thru "-" so the chip modal has
+                                 something to render instead of an empty cell.
     """
     ls_by_period = _linescores_by_period(competitor)
     status = competitor.get("status") or {}
@@ -188,22 +204,16 @@ def _today_cells(competitor: dict[str, Any]) -> tuple[str, str]:
     )
 
     if t == STATUS_IN_PROGRESS and current_has_value:
-        return (
-            str(current_ls.get("displayValue") or ""),
-            str(thru) if thru is not None else "",
-        )
+        return str(current_ls.get("displayValue") or ""), _thru_display(thru)
     if t == STATUS_PLAY_COMPLETE and current_has_value:
         return str(current_ls.get("displayValue") or ""), "F"
     if t == STATUS_SCHEDULED:
         tee = status.get("teeTime")
         return "-", (TEE_TIME_PREFIX + tee) if tee else ""
     if t in NON_PLAYING_STATUSES:
-        return "", ""
+        return "", "-"
     if current_has_value:
-        return (
-            str(current_ls.get("displayValue") or ""),
-            str(thru) if thru is not None else "",
-        )
+        return str(current_ls.get("displayValue") or ""), _thru_display(thru)
     return "", ""
 
 
