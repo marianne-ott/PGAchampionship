@@ -942,17 +942,6 @@
          and rank-col cells resolve to the same row height in every row. */
       min-height: 2.4rem;
     }
-    .pick-done-flag {
-      position: absolute;
-      top: 0.22rem;
-      right: 0.22rem;
-      font-size: 0.62rem;
-      font-weight: 700;
-      line-height: 1;
-      color: var(--muted);
-      pointer-events: none;
-      z-index: 1;
-    }
     .pick-slot .pick-chip {
       display: block;
       width: 100%;
@@ -1572,8 +1561,6 @@
         trophyGoldAria: "1. plass, toppgevinst",
         trophySilverTitle: "2. plass — andreplass",
         trophySilverAria: "2. plass, andreplass",
-        finishedFinalRoundLabel: "Ferdig med siste runde",
-        finishedFinalRoundTitle: "Ferdig med siste runde",
         modalColThru: "Spilt",
         modalColScore: "Tot",
         modalColPos: "Plass",
@@ -1634,8 +1621,6 @@
         trophyGoldAria: "1st place, top prize",
         trophySilverTitle: "2nd place — runner-up prize",
         trophySilverAria: "2nd place, runner-up prize",
-        finishedFinalRoundLabel: "Finished final round",
-        finishedFinalRoundTitle: "Finished final round",
         modalColThru: "Thru",
         modalColScore: "Tot",
         modalColPos: "Pos",
@@ -2334,11 +2319,7 @@
               "<span class='chip-pts'>" + escapeHtml(pos) + "</span>" +
               "</span>";
           }
-          const doneFlag =
-            !p.missing && p.doneFinalRound
-              ? '<span class="pick-done-flag" role="img" aria-label="' + escapeHtml(t("finishedFinalRoundLabel")) + '" title="' + escapeHtml(t("finishedFinalRoundTitle")) + '">\u2713</span>'
-              : "";
-          return "<div class='" + slotCls + "'>" + doneFlag + inner + "</div>";
+          return "<div class='" + slotCls + "'>" + inner + "</div>";
         }).join("") + "</div>";
       }
 
