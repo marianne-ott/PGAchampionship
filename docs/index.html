@@ -1556,6 +1556,7 @@
         cadenceTournament: "Oppdaterer automatisk hvert minutt",
         cadencePost: "Oppdaterer automatisk ca. hvert 5. minutt",
         btnUpdateNowTitle: "Oppdater nå",
+        cadenceFinal: "Sluttresultat",
         source: "Kilde",
         trophyGoldTitle: "1. plass — toppgevinst",
         trophyGoldAria: "1. plass, toppgevinst",
@@ -1616,6 +1617,7 @@
         cadenceTournament: "Auto-updates every minute",
         cadencePost: "Auto-updates roughly every 5 min",
         btnUpdateNowTitle: "Refresh now",
+        cadenceFinal: "Final results",
         source: "Source",
         trophyGoldTitle: "1st place — top prize",
         trophyGoldAria: "1st place, top prize",
@@ -1939,6 +1941,11 @@
        back to the GH-Actions 5-min cadence and polls less aggressively. */
     const POLL_WORKER_MS = 30 * 1000;
     const POLL_STATIC_MS = 60 * 1000;
+    /* Tournament over: render the final snapshot once on page load and
+       then freeze. No auto-reload chain, no manual refresh button, and
+       the header subline reads "Final results" instead of an update
+       cadence. Flip back to false for the next event. */
+    const TOURNAMENT_OVER = true;
     let autoReloadTimer = null;
     let fetchInFlight = false;
     /* Computed at startup from <meta name="pga-worker-url">. Empty string
@@ -1975,6 +1982,7 @@
 
     function scheduleNextAutoReload() {
       cancelAutoReload();
+      if (TOURNAMENT_OVER) return;
       const delay = workerConfigured() ? POLL_WORKER_MS : POLL_STATIC_MS;
       autoReloadTimer = setTimeout(() => {
         autoReloadTimer = null;
@@ -1988,7 +1996,9 @@
       if (!lastFetchedAtRaw) { el.innerHTML = ""; return; }
       const shortTime = formatFetchedAtShort(lastFetchedAtRaw);
       const fullTime = formatFetchedAtFull(lastFetchedAtRaw);
-      const cadenceKey = workerConfigured() ? "cadenceTournament" : "cadencePost";
+      const cadenceKey = TOURNAMENT_OVER
+        ? "cadenceFinal"
+        : (workerConfigured() ? "cadenceTournament" : "cadencePost");
       el.innerHTML =
         escapeHtml(t("lastUpdated")) + " <strong title=\"" + escapeHtml(fullTime) + "\">" +
         escapeHtml(shortTime) + "</strong>" +
@@ -2717,6 +2727,10 @@
     function initForceReload() {
       const btn = $("forceReload");
       if (!btn) return;
+      if (TOURNAMENT_OVER) {
+        btn.hidden = true;
+        return;
+      }
       btn.addEventListener("click", () => {
         if (fetchInFlight) return;
         load({ force: true });
