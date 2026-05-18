@@ -109,6 +109,14 @@
       color: rgba(255, 255, 255, 0.55);
       font-style: italic;
       letter-spacing: 0;
+      transition: color 180ms ease;
+    }
+    /* Briefly emphasised when the user clicks the refresh button while the
+       tournament-over freeze is active — explains why nothing happens. */
+    .reload-cadence.is-flash {
+      color: var(--pga-gold);
+      font-style: normal;
+      font-weight: 600;
     }
     /* Discreet circular-arrow refresh icon in the header. Visually weighs
        about as much as the language flags so it doesn't compete with the
@@ -1556,7 +1564,9 @@
         cadenceTournament: "Oppdaterer automatisk hvert minutt",
         cadencePost: "Oppdaterer automatisk ca. hvert 5. minutt",
         btnUpdateNowTitle: "Oppdater nå",
+        btnFinalTitle: "Ingen flere oppdateringer",
         cadenceFinal: "Sluttresultat",
+        tournamentOverFlash: "Turneringen er ferdig — dette er sluttresultatet",
         source: "Kilde",
         trophyGoldTitle: "1. plass — toppgevinst",
         trophyGoldAria: "1. plass, toppgevinst",
@@ -1617,7 +1627,9 @@
         cadenceTournament: "Auto-updates every minute",
         cadencePost: "Auto-updates roughly every 5 min",
         btnUpdateNowTitle: "Refresh now",
+        btnFinalTitle: "No more updates",
         cadenceFinal: "Final results",
+        tournamentOverFlash: "Tournament is over — these are the final results",
         source: "Source",
         trophyGoldTitle: "1st place — top prize",
         trophyGoldAria: "1st place, top prize",
@@ -2728,13 +2740,33 @@
       const btn = $("forceReload");
       if (!btn) return;
       if (TOURNAMENT_OVER) {
-        btn.hidden = true;
+        /* Keep the button visible — it's a familiar affordance — but
+           swap its click behaviour to a brief inline flash explaining
+           that there's nothing left to fetch. */
+        const label = t("btnFinalTitle");
+        btn.title = label;
+        btn.setAttribute("aria-label", label);
+        btn.addEventListener("click", showTournamentOverFlash);
         return;
       }
       btn.addEventListener("click", () => {
         if (fetchInFlight) return;
         load({ force: true });
       });
+    }
+
+    let tournamentOverFlashTimer = null;
+    function showTournamentOverFlash() {
+      const span = document.querySelector("#reloadCountdown .reload-cadence");
+      if (!span) return;
+      if (tournamentOverFlashTimer) clearTimeout(tournamentOverFlashTimer);
+      span.textContent = t("tournamentOverFlash");
+      span.classList.add("is-flash");
+      tournamentOverFlashTimer = setTimeout(() => {
+        tournamentOverFlashTimer = null;
+        span.classList.remove("is-flash");
+        updateReloadCountdownDisplay();
+      }, 3500);
     }
 
     function initTabs() {
